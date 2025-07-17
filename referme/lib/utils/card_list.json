@@ -1,0 +1,226 @@
+[
+    {
+      "bank": "Axis Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Axis_Bank_logo.svg/120px-Axis_Bank_logo.svg.png?20100223155056",
+      "cards": [
+        "Reserve",
+        "Magnus",
+        "Atlas",
+        "Select",
+        "Horizon",
+        "Flipkart Axis",
+        "My Zone",
+        "Ace",
+        "IndianOil Axis",
+        "Aura Health"
+      ]
+    },
+    {
+      "bank": "HDFC Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/HDFC_Bank_Logo.svg/120px-HDFC_Bank_Logo.svg.png?20110306040211",
+      "cards": [
+        "Infinia Metal",
+        "Diners Club Black Metal",
+        "Regalia Gold",
+        "Tata Neu Infinity",
+        "Millennia",
+        "Swiggy",
+        "MoneyBack Plus",
+        "Marriott Bonvoy",
+        "6E Rewards XL",
+        "IndianOil HDFC"
+      ]
+    },
+    {
+      "bank": "ICICI Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/ICICI_Bank_Logo.svg/120px-ICICI_Bank_Logo.svg.png?20180808221300",
+      "cards": [
+        "Emeralde",
+        "Sapphiro",
+        "Rubyx",
+        "Coral",
+        "Platinum Chip",
+        "Amazon Pay",
+        "Mine",
+        "HPCL Super Saver",
+        "InterMiles Sapphiro",
+        "MakeMyTrip Signature"
+      ]
+    },
+    {
+      "bank": "SBI Card",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/archive/c/cc/20140824082308%21SBI-logo.svg/120px-SBI-logo.svg.png",
+      "cards": [
+        "Elite",
+        "Prime",
+        "Cashback SBI",
+        "BPCL Octane",
+        "SimplyCLICK",
+        "SimplySAVE",
+        "Yatra SBI",
+        "IRCTC SBI Premier", 
+        "Air India Signature",
+        "Delhi Metro SBI"
+      ]
+    },
+    {
+      "bank": "Kotak Mahindra Bank",
+      "logo": "https://e7.pngegg.com/pngimages/333/464/png-clipart-kotak-mahindra-bank-logo-horizontal-bank-logos-thumbnail.png",
+      "cards": [
+        "White Reserve",
+        "White",
+        "Zen Signature",
+        "Myntra Kotak",
+        "PVR INOX Gold",
+        "IndiGo 6E XL",
+        "League Platinum",
+        "811 DreamDifferent",
+        "Kotak UPI RuPay",
+        "IndianOil Kotak"
+      ]
+    },
+    {
+      "bank": "IndusInd Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/4/40/IndusInd_Bank_SVG_Logo.svg",
+      "cards": [
+        "Legend",
+        "Pinnacle",
+        "EazyDiner",
+        "Platinum RuPay",
+        "Nexxt",
+        "Avios Visa Infinite",
+        "Platinum Aura Edge",
+        "Tiger",
+        "Samman",
+        "6E Rewards XL"
+      ]
+    },
+    {
+      "bank": "Bank of Baroda",
+      "logo": "https://logos-world.net/wp-content/uploads/2020/11/Bank-of-Baroda-Logo.png",
+      "cards": [
+        "Eterna",
+        "Premier",
+        "Select",
+        "IRCTC BoB",
+        "HPCL BoB Energie",
+        "Snapdeal BoB",
+        "Indian Navy Varunah",
+        "Indian Army Yoddha",
+        "Easy",
+        "Prime"
+      ]
+    },
+    {
+      "bank": "Federal Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Federal_Bank_Logo.png/120px-Federal_Bank_Logo.png?20211111084851",
+      "cards": [
+        "Celesta",
+        "Imperio",
+        "Signet",
+        "RuPay Signet",
+        "Scapia",
+        "Visa Celesta"
+      ]
+    },
+    {
+      "bank": "Punjab National Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Punjab_National_Bank.svg",
+      "cards": [
+        "RuPay Classic",
+        "RuPay Platinum",
+        "RuPay Select",
+        "PNB Global Gold",
+        "PNB Global Classic"
+      ]
+    },
+    {
+      "bank": "RBL Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/7/70/RBL_Bank_SVG_Logo.svg",
+      "cards": [
+        "World Safari",
+        "Icon",
+        "Play (Movies & More)",
+        "IndianOil XTRA",
+        "ShopRite",
+        "IRCTC RBL",
+        "SaveMax",
+        "Platinum Delight",
+        "Platinum Maxima Plus",
+        "Titanium Delight"
+      ]
+    },
+    {
+      "bank": "YES Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Yes_Bank_SVG_Logo.svg",
+      "cards": [
+        "Private",
+        "Marquee",
+        "Reserv",
+        "ELITE+",
+        "SELECT",
+        "ACE",
+        "Wellness Plus",
+        "PaisaSave",
+        "BYOC",
+        "Klick RuPay"
+      ]
+    },
+    {
+      "bank": "IDFC FIRST Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Logo_of_IDFC_First_Bank.svg",
+      "cards": [
+        "FIRST Classic",
+        "FIRST Millennia",
+        "FIRST Select",
+        "FIRST Wealth",
+        "FIRST SWYPE",
+        "FIRST WOW"
+      ]
+    },
+    {
+      "bank": "HSBC India",
+      "logo": "https://logos-world.net/wp-content/uploads/2021/02/HSBC-Logo-120x67.png",
+      "cards": [
+        "Premier Credit Card",
+        "Platinum Credit Card",
+        "TravelOne",
+        "Taj Credit Card",
+        "Live+ Credit Card"
+      ]
+    },
+    {
+      "bank": "Union Bank of India",
+      "logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTYq-2EugzZQ_-nRmJM8vJwVuQ-rPZl_pDcHA&s",
+      "cards": [
+        "UNI-Carbon RuPay",
+        "RuPay Platinum",
+        "Visa Platinum",
+        "Visa Signature",
+        "Divaa",
+        "RuPay Select"
+      ]
+    },
+    {
+      "bank": "Canara Bank",
+      "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/archive/5/50/20100912170810%21Canara_Bank_Logo.svg/120px-Canara_Bank_Logo.svg.png",
+      "cards": [
+        "RuPay Select",
+        "RuPay Platinum",
+        "RuPay Classic",
+        "RuPay National Common Mobility Card"
+      ]
+    },
+    {
+      "bank": "Bank of India",
+      "logo": "https://logos-world.net/wp-content/uploads/2020/11/Bank-of-India-Logo-700x394.png",
+      "cards": [
+        "RuPay Select",
+        "RuPay Platinum",
+        "RuPay Swadhan Platinum",
+        "Visa Gold International",
+        "Visa Platinum International",
+        "MasterCard Platinum International"
+      ]
+    }
+  ]
