@@ -247,4 +247,47 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.tokenKey);
   }
+
+  final String baseUrl = AppConstants.baseUrl;
+
+  Future<ApiResponse> post(String endpoint, Map<String, dynamic> body) async {
+    try {
+      // Retrieve token from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(AppConstants.tokenKey);
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+        if (token != null && token.isNotEmpty)
+          'Authorization': 'Bearer $token',
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+
+      print("*******we made a req to $endpoint with body $body and headers $headers");
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(
+          data: jsonDecode(response.body),
+          statusCode: response.statusCode,
+        );
+      } else {
+        return ApiResponse.error(
+          message: 'Request failed',
+          exceptionMessage: 'Status code: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(
+        message: 'Request failed',
+        exceptionMessage: e.toString(),
+      );
+    }
+  }
 } 

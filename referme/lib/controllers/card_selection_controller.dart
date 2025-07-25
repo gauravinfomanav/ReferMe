@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bank_card_model.dart';
+import '../models/card_request_model.dart';
+import '../services/api_service.dart';
 
 class CardSelectionController extends GetxController {
   final RxList<BankCardModel> banks = <BankCardModel>[].obs;
@@ -110,10 +112,38 @@ class CardSelectionController extends GetxController {
   }
 
   Future<void> saveCardSelectionStatus() async {
+    try {
+      final apiService = ApiService();
+      
+      // Send each card individually to the API
+      for (String cardName in selectedCards) {
+        // Find the bank that has this card
+        final bank = banks.firstWhere(
+          (bank) => bank.cards.contains(cardName),
+          orElse: () => BankCardModel(bank: '', logo: '', cards: []),
+        );
+        
+        if (bank.bank.isNotEmpty) {
+          // Create single card request
+          final cardRequest = CardRequestModel(
+            bankName: bank.bank,
+            cardName: cardName,
+          );
+          
+          // Make API call for this single card
+          final resp = await apiService.post('/api/cards', cardRequest.toJson());
+          print('API response for card ${cardRequest.cardName} (${cardRequest.bankName}): $resp');
+        }
+      }
+
+      // Save local preferences after all cards are sent
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(cardSelectionCompletedKey, true);
-    // Save selected cards
     await prefs.setStringList(selectedCardsKey, selectedCards.toList());
+    } catch (e) {
+      print('Error saving cards: $e');
+      rethrow; // Let the UI handle the error
+    }
   }
 
   static Future<bool> isCardSelectionCompleted() async {

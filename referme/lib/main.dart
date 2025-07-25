@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:device_preview/device_preview.dart';
-import 'package:referme/screens/select_card_screen.dart';
+
 import 'constants/app_constants.dart';
 import 'screens/splash_screen.dart';
 
@@ -57,8 +57,8 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-       home: const SplashScreen(),
-      //  home:  SelectCardScreen(),
+      home: const SplashScreen(),
+      // home: const MainDashboardScreen(), // Uncomment this and comment SplashScreen when ready
     );
   }
 }
