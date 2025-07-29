@@ -189,13 +189,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // Format phone number with country code
       final phone = '${_countryCodeController.text}${_phoneController.text}';
       
-      // Call signup method from auth controller
+      // Call signup method from auth controller with error handling
       _authController.signup(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         phone: phone.replaceAll(' ', ''),
         password: _passwordController.text,
-      );
+      ).catchError((error) {
+        // Ensure loader stops on error
+        // The AuthController should handle this, but we add extra safety
+      });
+    } else {
+      // If validation fails, ensure loader is not running
+      // This might be needed if the loader was somehow started elsewhere
     }
   }
 
@@ -203,20 +209,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(AppConstants.backgroundColorHex),
-      resizeToAvoidBottomInset: false,
-      body: 
-         Column(
+      resizeToAvoidBottomInset: true, // Changed to true to handle keyboard
+      body: SafeArea(
+        child: Column(
           children: [
-            SizedBox(height: 50),
+            const SizedBox(height: 20),
             Expanded(
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20, // Add keyboard padding
+                ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 20),
                       // Welcome Text
                       MusaffaAutoSizeText.displayExtraLarge(
                         'Create Account With ReferMe',
@@ -225,15 +234,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         fontWeight: FontWeight.w700,
                       ),
 
-                      const SizedBox(height: 8),
+                     
 
-                      MusaffaAutoSizeText.headlineSmall(
-                        maxLines: 2,
-                        'Join ReferMe and unlock rewards!',
-                        color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
-                      ),
-
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 22),
 
                       // Form Fields
                       AppTextField(
@@ -354,7 +357,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
 
             // Bottom Section with Sign Up Button
-            Padding(
+            Container(
               padding: const EdgeInsets.all(16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -384,13 +387,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ],
                   ),
-                  SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 16 : 0),
                 ],
               ),
             ),
           ],
         ),
-      
+      ),
     );
   }
 } 

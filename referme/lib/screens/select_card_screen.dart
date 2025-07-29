@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:referme/screens/main_screen.dart';
 import '../constants/app_constants.dart';
 import '../controllers/card_selection_controller.dart';
 import '../controllers/contacts_controller.dart';
@@ -20,6 +21,9 @@ class SelectCardScreen extends StatefulWidget {
 class _SelectCardScreenState extends State<SelectCardScreen> {
   final CardSelectionController _controller = Get.put(CardSelectionController());
   final ContactsController _contactsController = Get.put(ContactsController());
+  
+  // Add a flag to prevent multiple API calls
+  bool _isNavigating = false;
 
   @override
   void initState() {
@@ -27,17 +31,268 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
     // Request contact permission when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print('🔄 Requesting contact permission...');
-      _contactsController.requestContactPermission();
+      _requestContactPermissionWithUI();
     });
   }
 
-  void _handleDashboardNavigation() async {
-    // Store selected cards and mark selection as completed
-    await _controller.saveCardSelectionStatus();
-    
-    // Navigate to dashboard and remove all previous routes
-    Get.offAll(() => const DashboardScreen());
+  // Improved method to handle permission with better UI flow
+  Future<void> _requestContactPermissionWithUI() async {
+    try {
+      // Show loading state while checking permission
+      _contactsController.isLoading.value = true;
+      
+      // Check current permission status
+      final status = await _contactsController.checkContactPermission();
+      
+      if (status == 'granted') {
+        // Permission already granted, hide overlay and proceed
+        _contactsController.permissionDenied.value = false;
+        // Load contacts in background
+        await _contactsController.loadContacts();
+      } else {
+        // Permission not granted, show permission UI
+        _contactsController.permissionDenied.value = true;
+      }
+    } catch (e) {
+      print('Error checking permission: $e');
+      _contactsController.permissionDenied.value = true;
+    } finally {
+      _contactsController.isLoading.value = false;
+    }
   }
+
+  // Fixed method to handle permission request from UI
+  Future<void> _handlePermissionRequest() async {
+    try {
+      _contactsController.isLoading.value = true;
+      
+      final result = await _contactsController.requestContactPermission();
+      
+      if (result == 'granted') {
+        // Permission granted, hide overlay and load contacts
+        _contactsController.permissionDenied.value = false;
+        await _contactsController.loadContacts();
+      } else {
+        // Permission still denied, show explanation dialog and keep asking
+        _contactsController.permissionDenied.value = true;
+        _showPermissionNecessityDialog();
+      }
+    } catch (e) {
+      print('Error requesting permission: $e');
+      _contactsController.permissionDenied.value = true;
+      _showPermissionNecessityDialog();
+    } finally {
+      _contactsController.isLoading.value = false;
+    }
+  }
+
+  void _showPermissionNecessityDialog() {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(
+              Icons.people_outline,
+              color: Color(AppConstants.primaryColorHex),
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Contact Access Required',
+                style: TextStyle(
+                  color: Color(AppConstants.primaryColorHex),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'We need access to your contacts to help you discover:',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[800],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildBenefitItem(
+              Icons.group_add,
+              'Find Friends',
+              'See how many of your contacts are already using ReferMe',
+            ),
+            const SizedBox(height: 12),
+            _buildBenefitItem(
+              Icons.credit_card,
+              'Card Holders',
+              'Discover which friends have credit cards for referral opportunities',
+            ),
+            const SizedBox(height: 12),
+            _buildBenefitItem(
+              Icons.monetization_on,
+              'Earn Rewards',
+              'Get referral bonuses when you successfully refer friends',
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.security,
+                    color: Color(AppConstants.primaryColorHex),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Your contacts are kept private and secure',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(AppConstants.primaryColorHex),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Get.back(); // Close dialog
+                _handlePermissionRequest(); // Ask for permission again
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(AppConstants.primaryColorHex),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Grant Permission',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: false, // Prevent dismissing by tapping outside
+    );
+  }
+
+  Widget _buildBenefitItem(IconData icon, String title, String description) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: Color(AppConstants.primaryColorHex),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Fixed method to handle dashboard navigation with proper API calls and single loader
+  Future<void> _handleDashboardNavigation() async {
+    // Prevent multiple simultaneous calls
+    if (_isNavigating) return;
+    _isNavigating = true;
+
+    // Show single loading indicator immediately
+    _contactsController.isLoading.value = true;
+    
+    try {
+      // Create list of futures for parallel execution
+      List<Future> apiCalls = [];
+      
+      // 1. Always save selected cards
+      apiCalls.add(_controller.saveCardSelectionStatus());
+      
+      // 2. Upload contacts only if permission is granted
+      if (!_contactsController.permissionDenied.value) {
+        apiCalls.add(_contactsController.uploadContacts());
+      }
+      
+      // Execute all API calls in parallel
+      await Future.wait(apiCalls);
+      
+      // Navigate directly without delay
+      Get.offAll(() => const MainScreen());
+      
+    } catch (e) {
+      print('Error during navigation: $e');
+      // Show error message
+      Get.snackbar(
+        'Error',
+        'Something went wrong. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      _isNavigating = false;
+      // Don't set loading to false here since we're navigating away
+    }
+  }
+
+  // Method to skip contacts and proceed - REMOVED since permission is mandatory
+  // void _skipContacts() {
+  //   _contactsController.permissionDenied.value = false;
+  //   _contactsController.isLoading.value = false;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -46,19 +301,102 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
       onWillPop: () async => false,
       child: Scaffold(
         backgroundColor: Color(AppConstants.backgroundColorHex),
-        appBar: AppBar(
-          title: MusaffaAutoSizeText.headlineMedium(
-            'Select Your Credit Card',
-            color: Color(AppConstants.primaryColorHex),
-            fontWeight: FontWeight.w600,
-          ),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          automaticallyImplyLeading: false, // Remove back button
-        ),
-        body: Stack(
-          children: [
-            Column(
+        body: Obx(() {
+          // Show loading overlay for any loading state
+          if (_contactsController.isLoading.value) {
+            return Container(
+              color: Color(AppConstants.backgroundColorHex),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(AppConstants.primaryColorHex),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    MusaffaAutoSizeText.bodyLarge(
+                      _isNavigating ? 'Setting up your account...' : 'Loading...',
+                      color: Color(AppConstants.primaryColorHex),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          
+          // Show permission overlay
+          if (_contactsController.permissionDenied.value) {
+            return Container(
+              color:  Color(AppConstants.backgroundColorHex),
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.contacts_rounded,
+                    size: 80,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                  const SizedBox(height: 24),
+                  MusaffaAutoSizeText.headlineMedium(
+                    'Contact Access Required',
+                    color: Color(AppConstants.primaryColorHex),
+                    fontWeight: FontWeight.w600,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  MusaffaAutoSizeText.bodyLarge(
+                    'We need access to your contacts to show you how many people use ReferMe and have credit cards, so you can ask them for referrals.',
+                    color: Color(AppConstants.primaryColorHex),
+                    textAlign: TextAlign.center,
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Allow button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _handlePermissionRequest,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Give Permission',
+                        style: TextStyle(
+                          color: Color(AppConstants.primaryColorHex),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          
+          // Main card selection UI
+          return Scaffold(
+            backgroundColor: Color(AppConstants.backgroundColorHex),
+            appBar: AppBar(
+              title: MusaffaAutoSizeText.headlineMedium(
+                'Select Your Credit Card',
+                color: Color(AppConstants.primaryColorHex),
+                fontWeight: FontWeight.w600,
+              ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+            ),
+            body: Column(
               children: [
                 // Search Box
                 Padding(
@@ -357,71 +695,8 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
                 ),
               ],
             ),
-            // Contact Permission Overlay
-            Obx(() {
-              if (_contactsController.isLoading.value) {
-                return Container(
-                  color: Colors.black.withOpacity(0.5),
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-              }
-              if (_contactsController.permissionDenied.value) {
-                return Container(
-                  color: Colors.black.withOpacity(0.9),
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.contacts_rounded,
-                        size: 80,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                      const SizedBox(height: 24),
-                      MusaffaAutoSizeText.headlineMedium(
-                        'Contact Access Required',
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      MusaffaAutoSizeText.bodyLarge(
-                        'To help you find your friends and earn referral rewards, we need access to your contacts.',
-                        color: Colors.white.withOpacity(0.9),
-                        textAlign: TextAlign.center,
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: () async {
-                          await _contactsController.requestContactPermission();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Grant Access',
-                          style: TextStyle(
-                            color: Color(AppConstants.primaryColorHex),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            }),
-          ],
-        ),
+          );
+        }),
       ),
     );
   }
@@ -479,4 +754,4 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
       ),
     );
   }
-} 
+}

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:referme/screens/dashboard_screen.dart';
 import 'package:referme/screens/login_screen.dart';
+import 'package:referme/screens/main_screen.dart';
 import 'package:referme/screens/select_card_screen.dart';
 import '../constants/app_constants.dart';
 import '../controllers/auth_controller.dart';
@@ -64,22 +65,29 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _handleNavigation() async {
-    await Future.delayed(Duration(milliseconds: AppConstants.splashDuration));
-    
-    final authController = Get.put(AuthController());
-    
-    if (!authController.isLoggedIn) {
-      Get.off(() => const LoginScreen());
-      return;
-    }
+    try {
+      await Future.delayed(Duration(milliseconds: AppConstants.splashDuration));
+      
+      final authController = Get.put(AuthController());
+      await authController.checkLoginStatus(); // Wait for auth check
+      
+      if (!authController.isLoggedIn) {
+        Get.offAll(() => const LoginScreen());
+        return;
+      }
 
-    // Check if card selection is completed
-    final isCardSelectionCompleted = await CardSelectionController.isCardSelectionCompleted();
-    
-    if (!isCardSelectionCompleted) {
-      Get.off(() => SelectCardScreen());
-    } else {
-      Get.off(() => const DashboardScreen());
+      // Check if card selection is completed
+      final isCardSelectionCompleted = await CardSelectionController.isCardSelectionCompleted();
+      
+      if (!isCardSelectionCompleted) {
+        Get.offAll(() => const SelectCardScreen());
+      } else {
+        Get.offAll(() => const MainScreen()); // Make sure this is MainScreen
+      }
+    } catch (e) {
+      print('Navigation error: $e');
+      // If any error occurs, safely navigate to login
+      Get.offAll(() => const LoginScreen());
     }
   }
 
@@ -194,20 +202,22 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                         
-                        // Bottom section with loading indicator
+                        // Bottom section with simple loader
                         Expanded(
                           flex: 2,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                                  ),
+                              // Simple dot loader
+                              const SizedBox(
+                                width: 60,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    _DotLoader(),
+                                    _DotLoader(),
+                                    _DotLoader(),
+                                  ],
                                 ),
                               ),
                               
@@ -233,6 +243,56 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+// Custom dot loader widget
+class _DotLoader extends StatefulWidget {
+  const _DotLoader();
+
+  @override
+  State<_DotLoader> createState() => _DotLoaderState();
+}
+
+class _DotLoaderState extends State<_DotLoader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _animation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    _controller.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+          shape: BoxShape.circle,
         ),
       ),
     );

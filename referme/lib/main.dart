@@ -5,13 +5,14 @@ import 'package:device_preview/device_preview.dart';
 
 import 'constants/app_constants.dart';
 import 'screens/splash_screen.dart';
+import 'screens/main_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() {
   runApp(
-    DevicePreview(
-      enabled: true, // Enable device preview
-      builder: (context) => const MyApp(), // Wrap your app
-    ),
+   // Enable device preview
+      const MyApp(), // Wrap your app
+    
   );
 }
 

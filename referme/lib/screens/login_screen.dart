@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:referme/screens/change_password_screen.dart';
@@ -8,7 +9,6 @@ import '../utils/app_button.dart';
 import '../utils/custom_snackbar.dart';
 import '../utils/autotextsize.dart';
 import '../controllers/auth_controller.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,10 +22,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
-  final AuthController _authController = Get.put(AuthController());
-  
+  final AuthController _authController = Get.find<AuthController>();
+
   String? _emailError;
   String? _passwordError;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -98,146 +99,154 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Color(AppConstants.backgroundColorHex),
       resizeToAvoidBottomInset: false,
       body: Column(
-          children: [
-            SizedBox(height: 50),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 40),
-                      // Welcome Text
-                      MusaffaAutoSizeText.displayExtraLarge(
-                        'Welcome Back! 👋',
-                        maxLines: 2,
-                        color: Color(AppConstants.primaryColorHex),
+        children: [
+          SizedBox(height: 50),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 40),
+                    // Welcome Text
+                    MusaffaAutoSizeText.displayExtraLarge(
+                      'Welcome Back! 👋',
+                      maxLines: 2,
+                      color: Color(AppConstants.primaryColorHex),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    MusaffaAutoSizeText.headlineSmall(
+                      maxLines: 2,
+                      'Sign in to continue your referral journey.',
+                      color:
+                          Color(AppConstants.primaryColorHex).withOpacity(0.7),
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // Email Field
+                    AppTextField(
+                      labelText: 'Email Address',
+                      hintText: 'Enter your email',
+                      controller: _emailController,
+                      focusNode: _emailFocus,
+                      errorText: _emailError,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      prefixIcon: Icon(
+                        Icons.email_outlined,
+                        color: Colors.grey.shade400,
+                        size: 20,
                       ),
+                      onSubmitted: (_) {
+                        _emailFocus.unfocus();
+                        FocusScope.of(context).requestFocus(_passwordFocus);
+                      },
+                    ),
 
-                      const SizedBox(height: 8),
+                    const SizedBox(height: 24),
 
-                      MusaffaAutoSizeText.headlineSmall(
-                        maxLines: 2,
-                        'Sign in to continue your referral journey.',
-                        color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
-                      ),
-
-                      const SizedBox(height: 40),
-
-                      // Email Field
-                      AppTextField(
-                        labelText: 'Email Address',
-                        hintText: 'Enter your email',
-                        controller: _emailController,
-                        focusNode: _emailFocus,
-                        errorText: _emailError,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        prefixIcon: Icon(
-                          Icons.email_outlined,
-                          color: Colors.grey.shade400,
-                          size: 20,
-                        ),
-                        onSubmitted: (_) {
-                          _emailFocus.unfocus();
-                          FocusScope.of(context).requestFocus(_passwordFocus);
-                        },
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Password Field
-                      AppTextField(
-                        labelText: 'Password',
-                        hintText: 'Enter your password',
-                        controller: _passwordController,
-                        focusNode: _passwordFocus,
-                        errorText: _passwordError,
-                        obscureText: true,
-                        textInputAction: TextInputAction.done,
-                        prefixIcon: Icon(
-                          Icons.lock_outline_rounded,
-                          color: Colors.grey.shade400,
-                          size: 20,
-                        ),
-                        onSubmitted: (_) {
-                          _passwordFocus.unfocus();
-                          _handleLogin();
-                        },
-                      ),
-                             
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                           
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: Color(AppConstants.primaryColorHex),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
+                    // Password Field
+                    AppTextField(
+                      labelText: 'Password',
+                      hintText: 'Enter your password',
+                      controller: _passwordController,
+                      focusNode: _passwordFocus,
+                      errorText: _passwordError,
+                       obscureText: _obscurePassword,
+                      suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
+                            color: Colors.grey.shade400,
+                            size: 20,
                           ),
-                          child: MusaffaAutoSizeText.headlineSmall(
-                            'Forgot Password?',
-                            color: Color(AppConstants.primaryColorHex),
-                            fontWeight: FontWeight.w500,
-                          ),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                         ),
+                      textInputAction: TextInputAction.done,
+                      prefixIcon: Icon(
+                        Icons.lock_outline_rounded,
+                        color: Colors.grey.shade400,
+                        size: 20,
                       ),
+                      onSubmitted: (_) {
+                        _passwordFocus.unfocus();
+                        _handleLogin();
+                      },
+                    ),
 
-                      const SizedBox(height: 40),
-                    ],
-                  ),
+                    // Align(
+                    //   alignment: Alignment.centerRight,
+                    //   child: TextButton(
+                    //     onPressed: () {},
+                    //     style: TextButton.styleFrom(
+                    //       foregroundColor: Color(AppConstants.primaryColorHex),
+                    //       padding: const EdgeInsets.symmetric(
+                    //         horizontal: 12,
+                    //         vertical: 8,
+                    //       ),
+                    //     ),
+                    //     child: MusaffaAutoSizeText.headlineSmall(
+                    //       'Forgot Password?',
+                    //       color: Color(AppConstants.primaryColorHex),
+                    //       fontWeight: FontWeight.w500,
+                    //     ),
+                    //   ),
+                    // ),
+
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
             ),
+          ),
 
-            // Bottom Section with Login Button
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Login Button
-                  AppButton(
-                    text: 'Login',
-                    onPressed: _handleLogin,
-                    isLoading: _authController.isLoading,
-                  ),
+          // Bottom Section with Login Button
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Login Button
+                Obx(() => AppButton(
+                      text: 'Login',
+                      onPressed: _handleLogin,
+                      isLoading: _authController.isLoading,
+                    )),
 
-                  const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-                  // Sign Up Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      MusaffaAutoSizeText.headlineSmall(
-                        'Don\'t have an account? ',
-                        color: Colors.grey.shade600,
+                // Sign Up Link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    MusaffaAutoSizeText.headlineSmall(
+                      'Don\'t have an account? ',
+                      color: Colors.grey.shade600,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Get.to(() => const SignUpScreen());
+                      },
+                      child: MusaffaAutoSizeText.headlineSmall(
+                        'Sign Up',
+                        fontWeight: FontWeight.w600,
+                        color: Color(AppConstants.primaryColorHex),
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          Get.to(() => const SignUpScreen());
-                        },
-                        child: MusaffaAutoSizeText.headlineSmall(
-                          'Sign Up',
-                          fontWeight: FontWeight.w600,
-                          color: Color(AppConstants.primaryColorHex),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 16 : 0),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                    height:
+                        MediaQuery.of(context).viewInsets.bottom > 0 ? 16 : 0),
+              ],
             ),
-          ],
-        ),
-      
+          ),
+        ],
+      ),
     );
   }
-} 
+}

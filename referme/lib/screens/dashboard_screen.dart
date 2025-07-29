@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:referme/screens/all_contacts_screen.dart';
 import '../constants/app_constants.dart';
 import '../controllers/matched_contacts_controller.dart';
+import '../controllers/contacts_controller.dart';
 import '../utils/autotextsize.dart';
+
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -12,6 +16,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final MatchedContactsController contactsController = Get.put(MatchedContactsController());
+    final ContactsController contactsUploadController = Get.put(ContactsController());
 
     return Scaffold(
       backgroundColor: Color(AppConstants.backgroundColorHex),
@@ -39,6 +44,16 @@ class DashboardScreen extends StatelessWidget {
                     'No contacts found',
                     color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
                   ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // Load and upload all contacts first, then fetch matched contacts
+                      await contactsUploadController.loadContacts();
+                      await contactsUploadController.uploadContacts();
+                      await contactsController.fetchMatchedContacts();
+                    },
+                    child: const Text('Refresh Contacts'),
+                  ),
                 ],
               ),
             );
@@ -53,16 +68,39 @@ class DashboardScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      MusaffaAutoSizeText.headlineSmall(
-                        'My Network',
-                        color: Color(AppConstants.primaryColorHex),
-                        fontWeight: FontWeight.w600,
-                        
-                      ),
-                      const SizedBox(height: 8),
-                      MusaffaAutoSizeText.bodyLarge(
-                        'Connect and share with your network',
-                        color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                MusaffaAutoSizeText.headlineSmall(
+                                  'My Network',
+                                  color: Color(AppConstants.primaryColorHex),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                const SizedBox(height: 8),
+                                MusaffaAutoSizeText.bodyLarge(
+                                  'Connect and share with your network',
+                                  color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // IconButton(
+                          //   onPressed: () async {
+                          //     // Refresh contacts: upload all contacts first, then fetch matched
+                          //     await contactsUploadController.loadContacts();
+                          //     await contactsUploadController.uploadContacts();
+                          //     await contactsController.fetchMatchedContacts();
+                          //   },
+                          //   icon: Icon(
+                          //     Icons.refresh,
+                          //     color: Color(AppConstants.primaryColorHex),
+                          //   ),
+                          // ),
+                        ],
                       ),
                     ],
                   ),
@@ -162,22 +200,85 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final contact = contactsData.unmatchedContacts[index];
                         return _buildContactCard(contact, isMatched: false, contactsController: contactsController);
                       },
-                      childCount: contactsData.unmatchedContacts.length,
+                      childCount: contactsData.unmatchedContacts.length > 15 
+                          ? 15 
+                          : contactsData.unmatchedContacts.length,
                     ),
                   ),
                 ),
+                if (contactsData.unmatchedContacts.length > 15)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
+                      child: Container(
+                        width: double.infinity,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(AppConstants.primaryColorHex),
+                              Color(AppConstants.primaryColorHex).withOpacity(0.8),
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(AppConstants.primaryColorHex).withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              Get.to(() => AllContactsScreen(
+                                contacts: contactsData.unmatchedContacts,
+                                contactsController: contactsController,
+                              ));
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'View All Contacts',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
 
               // Bottom Paddingr
               const SliverToBoxAdapter(
-                child: SizedBox(height: 32),
+                child: SizedBox(height: 48),
               ),
             ],
           );
@@ -378,21 +479,19 @@ class DashboardScreen extends StatelessWidget {
           showModalBottomSheet(
             context: Get.context!,
             isScrollControlled: true,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
+            backgroundColor: Colors.transparent,
             builder: (context) {
               return Container(
-                height: MediaQuery.of(context).size.height * 0.7,
+                height: MediaQuery.of(context).size.height * 0.75,
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Column(
                   children: [
-                    // Handle bar
+                    // Compact handle bar
                     Container(
-                      margin: const EdgeInsets.only(top: 12),
+                      margin: const EdgeInsets.only(top: 12, bottom: 4),
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
@@ -400,112 +499,129 @@ class DashboardScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header with avatar and user info
-                            Row(
-                              children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Color(AppConstants.primaryColorHex),
-                                        Color(AppConstants.primaryColorHex).withOpacity(0.7),
-                                      ],
-                                    ),
-                                  ),
-                                  padding: const EdgeInsets.all(2),
-                                  child: CircleAvatar(
-                                    backgroundColor: Colors.white,
-                                    radius: 32,
-                                    child: Text(
-                                      contactsController.getInitials(contact.name),
-                                      style: TextStyle(
-                                        color: Color(AppConstants.primaryColorHex),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 24,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        contact.name,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 22,
-                                          color: Color(AppConstants.primaryColorHex),
-                                        ),
-                                      ),
-                                      if (contact.contactName != contact.name)
-                                        Text(
-                                          'Saved as: ${contact.contactName}',
-                                          style: TextStyle(
-                                            color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      if (contact.phone != null && contact.phone.isNotEmpty)
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.phone,
-                                              size: 16,
-                                              color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              contact.phone,
-                                              style: TextStyle(
-                                                color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                    ],
-                                  ),
+                    
+                    // Compact header section
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Color(AppConstants.primaryColorHex).withOpacity(0.03),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          // Compact avatar
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color(AppConstants.primaryColorHex),
+                                  Color(AppConstants.primaryColorHex).withOpacity(0.8),
+                                ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(AppConstants.primaryColorHex).withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 24),
-                            
-                            // Cards section
+                            padding: const EdgeInsets.all(2),
+                            child: CircleAvatar(
+                              backgroundColor: Colors.white,
+                              radius: 24,
+                              child: Text(
+                                contactsController.getInitials(contact.name),
+                                style: TextStyle(
+                                  color: Color(AppConstants.primaryColorHex),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  contact.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 18,
+                                    color: Color(AppConstants.primaryColorHex),
+                                  ),
+                                ),
+                                if (contact.contactName != contact.name)
+                                  Text(
+                                    'Saved as: ${contact.contactName}',
+                                    style: TextStyle(
+                                      color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                if (contact.phone != null && contact.phone.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.phone_rounded,
+                                        size: 14,
+                                        color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        contact.phone,
+                                        style: TextStyle(
+                                          color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Compact cards section header
                             if (contact.hasCards && contact.cards.isNotEmpty) ...[
                               Row(
                                 children: [
                                   Icon(
-                                    Icons.credit_card,
+                                    Icons.credit_card_rounded,
                                     color: Color(AppConstants.primaryColorHex),
-                                    size: 20,
+                                    size: 18,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Credit Cards',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 18,
+                                      fontSize: 16,
                                       color: Color(AppConstants.primaryColorHex),
                                     ),
                                   ),
                                   const Spacer(),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      '${contact.cards.length} ${contact.cards.length == 1 ? 'card' : 'cards'}',
+                                      '${contact.cards.length}',
                                       style: TextStyle(
                                         color: Color(AppConstants.primaryColorHex),
                                         fontWeight: FontWeight.w600,
@@ -515,170 +631,34 @@ class DashboardScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               
-                              // Cards list
+                              // Compact cards list
                               ...contact.cards.map((cardData) {
-                                // Debug the actual structure
-                                print('🔍 cardData type: ${cardData.runtimeType}');
-                                print('🔍 cardData: $cardData');
-                                
-                                // Extract bankName and cardName from the card object
-                                String bankName = '';
-                                String cardName = '';
-                                
-                                if (cardData is Map) {
-                                  print('🔍 cardData is Map, keys: ${cardData.keys}');
-                                  bankName = cardData['bankName']?.toString() ?? '';
-                                  cardName = cardData['cardName']?.toString() ?? '';
-                                  print('🔍 Extracted from Map - bankName: "$bankName", cardName: "$cardName"');
-                                } else if (cardData is String) {
-                                  // Parse the string to extract bankName and cardName
-                                  String dataStr = cardData.toString();
-                                  print('🔍 Parsing string: $dataStr');
-                                  
-                                  // Use regex to extract bankName and cardName more reliably
-                                  RegExp bankNameRegex = RegExp(r'bankName:\s*([^,}]+)');
-                                  RegExp cardNameRegex = RegExp(r'cardName:\s*([^,}]+)');
-                                  
-                                  Match? bankMatch = bankNameRegex.firstMatch(dataStr);
-                                  Match? cardMatch = cardNameRegex.firstMatch(dataStr);
-                                  
-                                  if (bankMatch != null) {
-                                    bankName = bankMatch.group(1)?.trim() ?? '';
-                                  }
-                                  
-                                  if (cardMatch != null) {
-                                    cardName = cardMatch.group(1)?.trim() ?? '';
-                                  }
-                                  
-                                  print('🔍 Extracted from string - bankName: "$bankName", cardName: "$cardName"');
-                                } else {
-                                  print('🔍 cardData is NOT a Map or String');
-                                }
-                                
-                                print('🔍 Final Bank: $bankName, Card: $cardName');
-                                
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // Bank logo
-                                      FutureBuilder<String>(
-                                        future: _getBankLogo(bankName),
-                                        builder: (context, snapshot) {
-                                          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                                            return Container(
-                                              width: 50,
-                                              height: 50,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
-                                                ),
-                                              ),
-                                              child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(8),
-                                                child: Image.network(
-                                                  snapshot.data!,
-                                                  fit: BoxFit.contain,
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return Container(
-                                                      color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
-                                                      child: Icon(
-                                                        Icons.account_balance,
-                                                        color: Color(AppConstants.primaryColorHex),
-                                                        size: 24,
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                          return Container(
-                                            width: 50,
-                                            height: 50,
-                                            decoration: BoxDecoration(
-                                              color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Icon(
-                                              Icons.account_balance,
-                                              color: Color(AppConstants.primaryColorHex),
-                                              size: 24,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              cardName,
-                                              style: TextStyle(
-                                                color: Color(AppConstants.primaryColorHex),
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              bankName,
-                                              style: TextStyle(
-                                                color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
+                                return _buildCompactCardItem(cardData);
                               }).toList(),
                             ] else ...[
+                              // Compact no cards state
                               Container(
-                                padding: const EdgeInsets.all(24),
+                                padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  color: Color(AppConstants.primaryColorHex).withOpacity(0.05),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
-                                  ),
+                                  color: Color(AppConstants.primaryColorHex).withOpacity(0.03),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Column(
                                   children: [
                                     Icon(
                                       Icons.credit_card_outlined,
-                                      size: 48,
+                                      size: 32,
                                       color: Color(AppConstants.primaryColorHex).withOpacity(0.5),
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 8),
                                     Text(
                                       'No cards yet',
                                       style: TextStyle(
                                         color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 16,
+                                        fontSize: 14,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -686,7 +666,7 @@ class DashboardScreen extends StatelessWidget {
                                       'This user hasn\'t added any credit cards yet',
                                       style: TextStyle(
                                         color: Color(AppConstants.primaryColorHex).withOpacity(0.5),
-                                        fontSize: 14,
+                                        fontSize: 12,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -694,7 +674,7 @@ class DashboardScreen extends StatelessWidget {
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 16),
                           ],
                         ),
                       ),
@@ -709,6 +689,514 @@ class DashboardScreen extends StatelessWidget {
       );
     }
     return cardContent;
+  }
+
+  Widget _buildCardItem(dynamic cardData) {
+    // Extract bankName and cardName from the card object
+    String bankName = '';
+    String cardName = '';
+
+    if (cardData is Map) {
+      bankName = cardData['bankName']?.toString() ?? '';
+      cardName = cardData['cardName']?.toString() ?? '';
+    } else if (cardData is String) {
+      // Use regex to extract bankName and cardName more reliably
+      RegExp bankNameRegex = RegExp(r'bankName:\s*([^,}]+)');
+      RegExp cardNameRegex = RegExp(r'cardName:\s*([^,}]+)');
+
+      Match? bankMatch = bankNameRegex.firstMatch(cardData);
+      Match? cardMatch = cardNameRegex.firstMatch(cardData);
+
+      if (bankMatch != null) {
+        bankName = bankMatch.group(1)?.trim() ?? '';
+      }
+
+      if (cardMatch != null) {
+        cardName = cardMatch.group(1)?.trim() ?? '';
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Bank logo
+          FutureBuilder<String>( 
+            future: _getBankLogo(bankName),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                return Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      snapshot.data!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+                          child: Icon(
+                            Icons.account_balance,
+                            color: Color(AppConstants.primaryColorHex),
+                            size: 24,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              }
+              return Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.account_balance,
+                  color: Color(AppConstants.primaryColorHex),
+                  size: 24,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  cardName,
+                  style: TextStyle(
+                    color: Color(AppConstants.primaryColorHex),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  bankName,
+                  style: TextStyle(
+                    color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(AppConstants.primaryColorHex),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              textStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text('Request Referral'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedCardItem(dynamic cardData) {
+    // Extract bankName and cardName from the card object
+    String bankName = '';
+    String cardName = '';
+
+    if (cardData is Map) {
+      bankName = cardData['bankName']?.toString() ?? '';
+      cardName = cardData['cardName']?.toString() ?? '';
+    } else if (cardData is String) {
+      // Use regex to extract bankName and cardName more reliably
+      RegExp bankNameRegex = RegExp(r'bankName:\s*([^,}]+)');
+      RegExp cardNameRegex = RegExp(r'cardName:\s*([^,}]+)');
+
+      Match? bankMatch = bankNameRegex.firstMatch(cardData);
+      Match? cardMatch = cardNameRegex.firstMatch(cardData);
+
+      if (bankMatch != null) {
+        bankName = bankMatch.group(1)?.trim() ?? '';
+      }
+
+      if (cardMatch != null) {
+        cardName = cardMatch.group(1)?.trim() ?? '';
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Color(AppConstants.primaryColorHex).withOpacity(0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(AppConstants.primaryColorHex).withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // Card header with bank logo and info
+            Row(
+              children: [
+                // Enhanced bank logo container
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: FutureBuilder<String>(
+                    future: _getBankLogo(bankName),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            snapshot.data!,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Color(AppConstants.primaryColorHex).withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.account_balance_rounded,
+                                  color: Color(AppConstants.primaryColorHex),
+                                  size: 28,
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      }
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Color(AppConstants.primaryColorHex).withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.account_balance_rounded,
+                          color: Color(AppConstants.primaryColorHex),
+                          size: 28,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cardName,
+                        style: TextStyle(
+                          color: Color(AppConstants.primaryColorHex),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        bankName,
+                        style: TextStyle(
+                          color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            // Enhanced Request Referral button
+            Container(
+              width: double.infinity,
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(AppConstants.primaryColorHex),
+                    Color(AppConstants.primaryColorHex).withOpacity(0.8),
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(AppConstants.primaryColorHex).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    // TODO: Implement referral request functionality
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.share_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Request Referral',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactCardItem(dynamic cardData) {
+    // Extract bankName and cardName from the card object
+    String bankName = '';
+    String cardName = '';
+
+    if (cardData is Map) {
+      bankName = cardData['bankName']?.toString() ?? '';
+      cardName = cardData['cardName']?.toString() ?? '';
+    } else if (cardData is String) {
+      // Use regex to extract bankName and cardName more reliably
+      RegExp bankNameRegex = RegExp(r'bankName:\s*([^,}]+)');
+      RegExp cardNameRegex = RegExp(r'cardName:\s*([^,}]+)');
+
+      Match? bankMatch = bankNameRegex.firstMatch(cardData);
+      Match? cardMatch = cardNameRegex.firstMatch(cardData);
+
+      if (bankMatch != null) {
+        bankName = bankMatch.group(1)?.trim() ?? '';
+      }
+
+      if (cardMatch != null) {
+        cardName = cardMatch.group(1)?.trim() ?? '';
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Color(AppConstants.primaryColorHex).withOpacity(0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Bank logo
+          FutureBuilder<String>( 
+            future: _getBankLogo(bankName),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                return Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: Color(AppConstants.primaryColorHex).withOpacity(0.08),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SvgPicture.network(
+                      snapshot.data!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Color(AppConstants.primaryColorHex).withOpacity(0.08),
+                          child: Icon(
+                            Icons.account_balance,
+                            color: Color(AppConstants.primaryColorHex),
+                            size: 20,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              }
+              return Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Color(AppConstants.primaryColorHex).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.account_balance,
+                  color: Color(AppConstants.primaryColorHex),
+                  size: 20,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  cardName,
+                  style: TextStyle(
+                    color: Color(AppConstants.primaryColorHex),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  bankName,
+                  style: TextStyle(
+                    color: Color(AppConstants.primaryColorHex).withOpacity(0.5),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(AppConstants.primaryColorHex),
+                  Color(AppConstants.primaryColorHex).withOpacity(0.8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(AppConstants.primaryColorHex).withOpacity(0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  // TODO: Implement referral request functionality
+                },
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.share_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Request',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<String> _getBankLogo(String bankName) async {
@@ -751,3 +1239,58 @@ class DashboardScreen extends StatelessWidget {
     }
   }
 } 
+
+
+  Widget _buildBankLogo(String logoUrl) {
+    if (logoUrl.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.network(
+        logoUrl,
+        width: 50,
+        height: 50,
+        placeholderBuilder: (context) => _buildLoadingIndicator(),
+        fit: BoxFit.contain,
+      );
+    } else {
+      return Image.network(
+        logoUrl,
+        width: 50,
+        height: 50,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildErrorWidget();
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return _buildLoadingIndicator();
+        },
+      );
+    }
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Container(
+      width: 50,
+      height: 50,
+      color: Colors.grey[200],
+      child: Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            Color(AppConstants.primaryColorHex),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Container(
+      width: 50,
+      height: 50,
+      color: Colors.grey[200],
+      child: Icon(
+        Icons.credit_card,
+        color: Color(AppConstants.primaryColorHex),
+      ),
+    );
+  }

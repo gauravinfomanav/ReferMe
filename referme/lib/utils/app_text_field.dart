@@ -192,7 +192,7 @@ class _AppTextFieldState extends State<AppTextField>
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: widget.isMultiline ? 16 : 16,
+                      vertical:  10,
                     ),
                     counterText: '', // Hide character counter
                   ),

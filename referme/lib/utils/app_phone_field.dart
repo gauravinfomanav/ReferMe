@@ -147,7 +147,7 @@ class _AppPhoneFieldState extends State<AppPhoneField> {
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 8,
-                      vertical: 16,
+                      vertical: 10,
                     ),
                   ),
                 ),
@@ -185,7 +185,7 @@ class _AppPhoneFieldState extends State<AppPhoneField> {
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 16,
+                      vertical: 10,
                     ),
                   ),
                 ),

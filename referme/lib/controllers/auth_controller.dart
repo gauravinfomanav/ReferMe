@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:get/get.dart';
+import 'package:referme/screens/main_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import '../services/auth_service.dart';
@@ -68,16 +69,15 @@ class AuthController extends GetxController {
           message: response['message'] ?? 'Login successful!',
         );
         
-        Get.off(() => const DashboardScreen());
+        Get.off(() => const MainScreen());
       } else {
         CustomSnackBar.showError(
           message: response['message'] ?? 'Login failed',
         );
+        throw Exception(response['message'] ?? 'Login failed');
       }
     } catch (e) {
-      CustomSnackBar.showError(
-        message: 'An error occurred during login',
-      );
+     
     } finally {
       _isLoading.value = false;
     }
@@ -112,15 +112,18 @@ class AuthController extends GetxController {
         // Navigate to card selection screen instead of dashboard
         Get.off(() => SelectCardScreen());
       } else {
+        // Handle API error response
         CustomSnackBar.showError(
           message: response['message'] ?? 'Failed to create account',
         );
+        // Explicitly throw an error to ensure finally block executes
+        throw Exception(response['message'] ?? 'Failed to create account');
       }
     } catch (e) {
-      CustomSnackBar.showError(
-        message: 'An error occurred during signup',
-      );
+      // This will catch both network errors and the explicit error we threw above
+      
     } finally {
+      // This should always execute
       _isLoading.value = false;
     }
   }

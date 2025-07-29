@@ -10,8 +10,22 @@ import '../controllers/auth_controller.dart';
 class ContactsController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool permissionDenied = false.obs;
+  List<Contact> allContacts = []; // Store loaded contacts
 
-  Future<void> requestContactPermission() async {
+  // New method to check current permission status
+  Future<String> checkContactPermission() async {
+    try {
+      print('🔍 Checking contact permission status...');
+      final status = await FlutterContacts.requestPermission();
+      return status ? 'granted' : 'denied';
+    } catch (e) {
+      print('❌ Error checking contact permission: $e');
+      return 'denied';
+    }
+  }
+
+  // Updated method to only request permission
+  Future<String> requestContactPermission() async {
     try {
       print('👤 Starting contact permission request...');
       isLoading.value = true;
@@ -20,32 +34,50 @@ class ContactsController extends GetxController {
       if (hasPermission) {
         print('✅ Contact permission granted');
         permissionDenied.value = false;
-        await _loadAndMatchContacts();
       } else {
         print('❌ Contact permission denied');
         permissionDenied.value = true;
       }
+      
+      return hasPermission ? 'granted' : 'denied';
     } catch (e) {
       print('❌ Error requesting contact permission: $e');
       permissionDenied.value = true;
+      return 'denied';
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> _loadAndMatchContacts() async {
+  // New method to load contacts (separate from matching)
+  Future<void> loadContacts() async {
     try {
       print('📱 Loading contacts...');
       // Get contacts
-      final contacts = await FlutterContacts.getContacts(
+      allContacts = await FlutterContacts.getContacts(
         withProperties: true,
         withAccounts: true,
       );
 
-      print('📝 Found ${contacts.length} contacts');
+      print('📝 Found ${allContacts.length} contacts');
+    } catch (e) {
+      print('❌ Error loading contacts: $e');
+    }
+  }
+
+  // Updated method to match contacts (now public)
+  Future<void> uploadContacts() async {
+    if (allContacts.isEmpty) {
+      print('⚠️ No contacts to upload');
+      return;
+    }
+
+    try {
+      print('📤 Uploading contacts...');
+      isLoading.value = true;
 
       // Format contacts for API and sanitize phone numbers
-      final formattedContacts = contacts.where((contact) => 
+      final formattedContacts = allContacts.where((contact) => 
         contact.phones.isNotEmpty
       ).map((contact) => {
         "name": contact.displayName,
@@ -116,7 +148,9 @@ class ContactsController extends GetxController {
         print('❌ Error matching contacts: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('❌ Error loading and matching contacts: $e');
+      print('❌ Error uploading contacts: $e');
+    } finally {
+      isLoading.value = false;
     }
   }
 

@@ -7,6 +7,7 @@ import '../models/matched_contacts_model.dart';
 import '../constants/app_constants.dart';
 import '../utils/custom_snackbar.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/contacts_controller.dart';
 
 class MatchedContactsController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -15,7 +16,26 @@ class MatchedContactsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchMatchedContacts();
+    _initializeContacts();
+  }
+
+  Future<void> _initializeContacts() async {
+    try {
+      isLoading.value = true;
+      
+      // First, load and upload all contacts to ensure we have the latest data
+      final contactsController = Get.put(ContactsController());
+      await contactsController.loadContacts();
+      await contactsController.uploadContacts();
+      
+      // Then fetch the matched contacts
+      await fetchMatchedContacts();
+    } catch (e) {
+      print('Error initializing contacts: $e');
+      CustomSnackBar.showError(message: 'Error loading contacts: $e');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<void> fetchMatchedContacts() async {
@@ -31,7 +51,7 @@ class MatchedContactsController extends GetxController {
       }
 
       final response = await http.get(
-        Uri.parse('${AppConstants.baseUrl}/api/contacts/matched-users'),
+        Uri.parse('${AppConstants.baseUrl}/api/contacts/matched-users?limit=2000'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
