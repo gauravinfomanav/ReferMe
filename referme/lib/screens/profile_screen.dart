@@ -526,3 +526,4 @@ void _showCustomLogoutDialog(BuildContext context, VoidCallback onConfirm) {
     },
   );
 }
+

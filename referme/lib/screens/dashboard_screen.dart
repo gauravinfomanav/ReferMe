@@ -7,7 +7,11 @@ import 'package:referme/screens/all_contacts_screen.dart';
 import '../constants/app_constants.dart';
 import '../controllers/matched_contacts_controller.dart';
 import '../controllers/contacts_controller.dart';
+import '../controllers/referral_controller.dart';
+import '../controllers/auth_controller.dart';
 import '../utils/autotextsize.dart';
+import 'referrals_screen.dart';
+import 'referral_chat_screen.dart';
 
 
 class DashboardScreen extends StatelessWidget {
@@ -21,12 +25,13 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(AppConstants.backgroundColorHex),
       body: SafeArea(
-        child: Obx(() {
-          if (contactsController.isLoading.value) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+        child: Obx(() 
+           {
+            if (contactsController.isLoading.value) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
 
           final contactsData = contactsController.contactsData.value;
           if (contactsData == null) {
@@ -47,9 +52,9 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () async {
-                      // Load and upload all contacts first, then fetch matched contacts
-                      await contactsUploadController.loadContacts();
-                      await contactsUploadController.uploadContacts();
+                     
+                     
+                      
                       await contactsController.fetchMatchedContacts();
                     },
                     child: const Text('Refresh Contacts'),
@@ -82,7 +87,8 @@ class DashboardScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 8),
                                 MusaffaAutoSizeText.bodyLarge(
-                                  'Connect and share with your network',
+                                  maxLines: 2,
+                                  'Connect with your network and share reffrals to earn rewards.',
                                   color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
                                 ),
                               ],
@@ -635,7 +641,7 @@ class DashboardScreen extends StatelessWidget {
                               
                               // Compact cards list
                               ...contact.cards.map((cardData) {
-                                return _buildCompactCardItem(cardData);
+                                return _buildCompactCardItem(cardData, contact.userId);
                               }).toList(),
                             ] else ...[
                               // Compact no cards state
@@ -1025,7 +1031,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCompactCardItem(dynamic cardData) {
+  Widget _buildCompactCardItem(dynamic cardData, String contactId) {
     // Extract bankName and cardName from the card object
     String bankName = '';
     String cardName = '';
@@ -1164,9 +1170,7 @@ class DashboardScreen extends StatelessWidget {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () {
-                  // TODO: Implement referral request functionality
-                },
+                  onTap: () => _requestReferral(cardData, contactId),
                 borderRadius: BorderRadius.circular(18),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1236,6 +1240,123 @@ class DashboardScreen extends StatelessWidget {
     } catch (e) {
       print('Error loading bank data: $e');
       return [];
+    }
+  }
+
+  void _requestReferral(dynamic cardData, String targetUserId) async {
+    // Extract bankName and cardName from the card object
+    String bankName = '';
+    String cardName = '';
+
+    if (cardData is Map) {
+      bankName = cardData['bankName']?.toString() ?? '';
+      cardName = cardData['cardName']?.toString() ?? '';
+    } else if (cardData is String) {
+      // Use regex to extract bankName and cardName more reliably
+      RegExp bankNameRegex = RegExp(r'bankName:\s*([^,}]+)');
+      RegExp cardNameRegex = RegExp(r'cardName:\s*([^,}]+)');
+
+      Match? bankMatch = bankNameRegex.firstMatch(cardData);
+      Match? cardMatch = cardNameRegex.firstMatch(cardData);
+
+      if (bankMatch != null) {
+        bankName = bankMatch.group(1)?.trim() ?? '';
+      }
+
+      if (cardMatch != null) {
+        cardName = cardMatch.group(1)?.trim() ?? '';
+      }
+    }
+
+    // Get the referral controller
+    final referralController = Get.put(ReferralController());
+    
+    // Show a dialog to confirm the referral request
+    final confirmed = await showDialog<bool>(
+      context: Get.context!,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Request Referral',
+          style: TextStyle(
+            color: Color(AppConstants.primaryColorHex),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to request a referral for $cardName from $bankName?',
+          style: TextStyle(
+            color: Color(AppConstants.primaryColorHex).withOpacity(0.8),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () {
+                print("Cancel button tapped");
+                Navigator.of(context).pop(false);
+              },
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+              ),
+            ),
+          ),
+          ElevatedButton(
+              onPressed: () {
+                print("Request button tapped");
+                Navigator.of(context).pop(true);
+              },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(AppConstants.primaryColorHex),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Request',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      // Send the referral request
+      final success = await referralController.requestReferral(
+        targetUserId,
+        bankName,
+        cardName,
+      );
+
+      if (success) {
+        // Get the created referral and navigate to chat screen
+        await referralController.fetchReferrals();
+        
+        // Find the newly created referral
+        final newReferral = referralController.sentReferrals.firstWhereOrNull(
+          (referral) => referral.targetUserId == targetUserId && 
+                       referral.message.contains(cardName)
+        );
+        
+        if (newReferral != null) {
+          // Navigate to chat screen with the new referral
+          Get.to(() => ReferralChatScreen(
+            referral: newReferral,
+            isFromReceivedTab: false,
+          ));
+        } else {
+          // Fallback to referrals screen if chat not found
+        Get.to(() => const ReferralsScreen());
+        }
+      }
     }
   }
 } 

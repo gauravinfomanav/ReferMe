@@ -87,6 +87,137 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
   }
 
   void _showPermissionNecessityDialog() {
+    // Check if running on iOS
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      _showIOSPermissionInstructions();
+    } else {
+      _showGeneralPermissionDialog();
+    }
+  }
+
+  void _showIOSPermissionInstructions() {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(
+              Icons.settings,
+              color: Color(AppConstants.primaryColorHex),
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Enable Contact Access',
+                style: TextStyle(
+                  color: Color(AppConstants.primaryColorHex),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'To enable contact access on iOS, please follow these steps:',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[800],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildIOSStepItem(
+              '1',
+              'Open Settings',
+              'Go to your iPhone\'s Settings app',
+            ),
+            const SizedBox(height: 12),
+            _buildIOSStepItem(
+              '2',
+              'Find ReferMe',
+              'Scroll down and tap on "ReferMe" in the app list',
+            ),
+            const SizedBox(height: 12),
+            _buildIOSStepItem(
+              '3',
+              'Enable Contacts',
+              'Toggle the "Contacts" switch to ON',
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Color(AppConstants.primaryColorHex),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'After enabling, return to the app and try again',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(AppConstants.primaryColorHex),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              _handlePermissionRequest(); // Try again after user follows instructions
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(AppConstants.primaryColorHex),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              'Try Again',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  void _showGeneralPermissionDialog() {
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -198,6 +329,56 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
         ],
       ),
       barrierDismissible: false, // Prevent dismissing by tapping outside
+    );
+  }
+
+  Widget _buildIOSStepItem(String step, String title, String description) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: Color(AppConstants.primaryColorHex),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              step,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(AppConstants.primaryColorHex),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

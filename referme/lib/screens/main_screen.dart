@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../constants/app_constants.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
+import 'referrals_screen.dart';
 import 'dart:ui';
 import '../controllers/auth_controller.dart';
 
@@ -27,6 +28,11 @@ class _MainScreenState extends State<MainScreen> {
       label: 'Home',
     ),
     NavigationItem(
+      icon: CupertinoIcons.chat_bubble,
+      activeIcon: CupertinoIcons.chat_bubble_fill,
+      label: 'Referrals',
+    ),
+    NavigationItem(
       icon: CupertinoIcons.person,
       activeIcon: CupertinoIcons.person_fill,
       label: 'Profile',
@@ -39,6 +45,7 @@ class _MainScreenState extends State<MainScreen> {
     // Initialize screens
     _screens.value = [
       const DashboardScreen(),
+      const ReferralsScreen(),
       const ProfileScreen(),
     ];
 
@@ -153,6 +160,8 @@ class _MainScreenState extends State<MainScreen> {
       ),
     ));
   }
+
+
 }
 
 class NavigationItem {

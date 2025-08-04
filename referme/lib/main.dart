@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:device_preview/device_preview.dart';
 
 import 'constants/app_constants.dart';
 import 'screens/splash_screen.dart';
@@ -35,11 +34,6 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      
-      // Device preview configuration
-      useInheritedMediaQuery: true,
-      locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
       
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

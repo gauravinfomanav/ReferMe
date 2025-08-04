@@ -23,16 +23,39 @@ class MatchedContactsController extends GetxController {
     try {
       isLoading.value = true;
       
-      // First, load and upload all contacts to ensure we have the latest data
+      // Check if we have permission first
       final contactsController = Get.put(ContactsController());
-      await contactsController.loadContacts();
-      await contactsController.uploadContacts();
+      final permissionStatus = await contactsController.checkContactPermission();
       
-      // Then fetch the matched contacts
-      await fetchMatchedContacts();
+      if (permissionStatus != 'granted') {
+        print('Contact permission not granted, skipping contact initialization');
+        return;
+      }
+      
+      // Load contacts with error handling
+      try {
+        await contactsController.loadContacts();
+      } catch (e) {
+        print('Error loading contacts: $e');
+        return;
+      }
+      
+      // Upload contacts with error handling
+      try {
+        await contactsController.uploadContacts();
+      } catch (e) {
+        print('Error uploading contacts: $e');
+        // Continue to fetch matched contacts even if upload fails
+      }
+      
+      // Fetch matched contacts with error handling
+      try {
+        await fetchMatchedContacts();
+      } catch (e) {
+        print('Error fetching matched contacts: $e');
+      }
     } catch (e) {
       print('Error initializing contacts: $e');
-      CustomSnackBar.showError(message: 'Error loading contacts: $e');
     } finally {
       isLoading.value = false;
     }
@@ -46,7 +69,7 @@ class MatchedContactsController extends GetxController {
       final token = prefs.getString(AppConstants.tokenKey);
       
       if (token == null) {
-        CustomSnackBar.showError(message: 'Authentication token not found');
+        print('Authentication token not found');
         return;
       }
 
@@ -56,20 +79,24 @@ class MatchedContactsController extends GetxController {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 30)); // Add timeout
 
       if (response.statusCode == 200) {
-        final data = MatchedContactsResponse.fromJson(jsonDecode(response.body));
-        if (data.success) {
-          contactsData.value = data.data;
-        } else {
-          CustomSnackBar.showError(message: data.message);
+        try {
+          final data = MatchedContactsResponse.fromJson(jsonDecode(response.body));
+          if (data.success) {
+            contactsData.value = data.data;
+          } else {
+            print('API returned error: ${data.message}');
+          }
+        } catch (jsonError) {
+          print('Error parsing response: $jsonError');
         }
       } else {
-        CustomSnackBar.showError(message: 'Failed to fetch contacts');
+        print('HTTP error: ${response.statusCode}');
       }
     } catch (e) {
-      CustomSnackBar.showError(message: 'Error fetching contacts: $e');
+      print('Error fetching contacts: $e');
     } finally {
       isLoading.value = false;
     }

@@ -53,15 +53,16 @@ class ContactsController extends GetxController {
   Future<void> loadContacts() async {
     try {
       print('📱 Loading contacts...');
-      // Get contacts
+      // Get contacts with timeout
       allContacts = await FlutterContacts.getContacts(
         withProperties: true,
         withAccounts: true,
-      );
+      ).timeout(const Duration(seconds: 15));
 
       print('📝 Found ${allContacts.length} contacts');
     } catch (e) {
       print('❌ Error loading contacts: $e');
+      allContacts = []; // Reset to empty list on error
     }
   }
 
@@ -119,7 +120,7 @@ class ContactsController extends GetxController {
       print('Total contacts being sent: ${formattedContacts.length}');
       print('================================\n');
 
-      // Make API call
+      // Make API call with timeout
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/api/contacts/match'),
         headers: {
@@ -127,7 +128,7 @@ class ContactsController extends GetxController {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(requestBody),
-      );
+      ).timeout(const Duration(seconds: 30));
 
       // Log response status
       print('\n=== 📡 CONTACTS MATCH API RESPONSE ===');
