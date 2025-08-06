@@ -244,7 +244,7 @@ class _AllContactsScreenState extends State<AllContactsScreen> {
                         ? (contact.contactName != contact.name
                             ? 'Saved as ${contact.contactName}'
                             : 'ReferMe User')
-                        : contact.phone,
+                        : 'Contact',
                     style: TextStyle(
                       color: Color(AppConstants.primaryColorHex).withOpacity(0.5),
                       fontSize: 12,

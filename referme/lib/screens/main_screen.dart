@@ -5,6 +5,7 @@ import '../constants/app_constants.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'referrals_screen.dart';
+import 'search_screen.dart';
 import 'dart:ui';
 import '../controllers/auth_controller.dart';
 
@@ -28,6 +29,11 @@ class _MainScreenState extends State<MainScreen> {
       label: 'Home',
     ),
     NavigationItem(
+      icon: CupertinoIcons.search,
+      activeIcon: CupertinoIcons.search,
+      label: 'Search',
+    ),
+    NavigationItem(
       icon: CupertinoIcons.chat_bubble,
       activeIcon: CupertinoIcons.chat_bubble_fill,
       label: 'Referrals',
@@ -45,6 +51,7 @@ class _MainScreenState extends State<MainScreen> {
     // Initialize screens
     _screens.value = [
       const DashboardScreen(),
+      const SearchScreen(),
       const ReferralsScreen(),
       const ProfileScreen(),
     ];

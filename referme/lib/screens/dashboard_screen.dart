@@ -568,26 +568,7 @@ class DashboardScreen extends StatelessWidget {
                                       fontSize: 12,
                                     ),
                                   ),
-                                if (contact.phone != null && contact.phone.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.phone_rounded,
-                                        size: 14,
-                                        color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        contact.phone,
-                                        style: TextStyle(
-                                          color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+
                               ],
                             ),
                           ),
@@ -1092,20 +1073,7 @@ class DashboardScreen extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(6),
-                    child: SvgPicture.network(
-                      snapshot.data!,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Color(AppConstants.primaryColorHex).withOpacity(0.08),
-                          child: Icon(
-                            Icons.account_balance,
-                            color: Color(AppConstants.primaryColorHex),
-                            size: 20,
-                          ),
-                        );
-                      },
-                    ),
+                    child: _buildBankLogo(snapshot.data!),
                   ),
                 );
               }
@@ -1366,16 +1334,16 @@ class DashboardScreen extends StatelessWidget {
     if (logoUrl.toLowerCase().endsWith('.svg')) {
       return SvgPicture.network(
         logoUrl,
-        width: 50,
-        height: 50,
+        width: 40,
+        height: 40,
         placeholderBuilder: (context) => _buildLoadingIndicator(),
         fit: BoxFit.contain,
       );
     } else {
       return Image.network(
         logoUrl,
-        width: 50,
-        height: 50,
+        width: 40,
+        height: 40,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
           return _buildErrorWidget();
@@ -1390,8 +1358,8 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildLoadingIndicator() {
     return Container(
-      width: 50,
-      height: 50,
+      width: 40,
+      height: 40,
       color: Colors.grey[200],
       child: Center(
         child: CircularProgressIndicator(
@@ -1406,12 +1374,13 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildErrorWidget() {
     return Container(
-      width: 50,
-      height: 50,
+      width: 40,
+      height: 40,
       color: Colors.grey[200],
       child: Icon(
-        Icons.credit_card,
+        Icons.account_balance,
         color: Color(AppConstants.primaryColorHex),
+        size: 20,
       ),
     );
   }

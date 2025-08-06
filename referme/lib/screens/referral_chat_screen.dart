@@ -106,7 +106,7 @@ class _ReferralChatScreenState extends State<ReferralChatScreen> {
                 backgroundColor: Colors.white,
                 radius: 16,
                 child: Text(
-                  _getInitials(otherUser.name),
+                  _getInitials(_getDisplayName(otherUser.name)),
                   style: TextStyle(
                     color: Color(AppConstants.primaryColorHex),
                     fontWeight: FontWeight.w600,
@@ -121,7 +121,7 @@ class _ReferralChatScreenState extends State<ReferralChatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    otherUser.name,
+                    _getDisplayName(otherUser.name),
                     style: TextStyle(
                       color: Color(AppConstants.primaryColorHex),
                       fontWeight: FontWeight.w600,
@@ -694,5 +694,48 @@ class _ReferralChatScreenState extends State<ReferralChatScreen> {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
     return name[0].toUpperCase();
+  }
+
+  String _getDisplayName(String name) {
+    // Check if this user is a global user from the referral data
+    if (widget.referral.isGlobalUser) {
+      return _maskName(name);
+    }
+    
+    return name;
+  }
+
+  String _maskName(String name) {
+    if (name.isEmpty) return '*****';
+    
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      // For names with multiple words like "Gaurav Malode"
+      final firstName = parts[0];
+      final lastName = parts[1];
+      
+      String maskedFirstName = '';
+      if (firstName.length <= 3) {
+        maskedFirstName = firstName;
+      } else {
+        maskedFirstName = '${firstName.substring(0, 3)}***';
+      }
+      
+      String maskedLastName = '';
+      if (lastName.length <= 3) {
+        maskedLastName = '***${lastName}';
+      } else {
+        maskedLastName = '***${lastName.substring(lastName.length - 3)}';
+      }
+      
+      return '$maskedFirstName $maskedLastName';
+    } else {
+      // For single word names like "Gaurav"
+      if (name.length <= 3) {
+        return name;
+      } else {
+        return '${name.substring(0, 3)}***';
+      }
+    }
   }
 } 

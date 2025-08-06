@@ -34,7 +34,7 @@ class MatchedContactsController extends GetxController {
       
       // Load contacts with error handling
       try {
-        await contactsController.loadContacts();
+      await contactsController.loadContacts();
       } catch (e) {
         print('Error loading contacts: $e');
         return;
@@ -42,7 +42,7 @@ class MatchedContactsController extends GetxController {
       
       // Upload contacts with error handling
       try {
-        await contactsController.uploadContacts();
+      await contactsController.uploadContacts();
       } catch (e) {
         print('Error uploading contacts: $e');
         // Continue to fetch matched contacts even if upload fails
@@ -50,7 +50,7 @@ class MatchedContactsController extends GetxController {
       
       // Fetch matched contacts with error handling
       try {
-        await fetchMatchedContacts();
+      await fetchMatchedContacts();
       } catch (e) {
         print('Error fetching matched contacts: $e');
       }
@@ -83,10 +83,10 @@ class MatchedContactsController extends GetxController {
 
       if (response.statusCode == 200) {
         try {
-          final data = MatchedContactsResponse.fromJson(jsonDecode(response.body));
-          if (data.success) {
-            contactsData.value = data.data;
-          } else {
+        final data = MatchedContactsResponse.fromJson(jsonDecode(response.body));
+        if (data.success) {
+          contactsData.value = data.data;
+        } else {
             print('API returned error: ${data.message}');
           }
         } catch (jsonError) {

@@ -175,6 +175,7 @@ class Referral {
   final ReferralMessageData? referralMessage;
   final List<ChatMessage>? chatHistory;
   final int? messageCount;
+  final bool isGlobalUser;
 
   Referral({
     required this.id,
@@ -191,6 +192,7 @@ class Referral {
     this.referralMessage,
     this.chatHistory,
     this.messageCount,
+    this.isGlobalUser = false,
   });
 
   factory Referral.fromJson(Map<String, dynamic> json) {
@@ -221,6 +223,7 @@ class Referral {
               .toList()
           : null,
       messageCount: json['messageCount'],
+      isGlobalUser: json['isGlobalUser'] ?? false,
     );
   }
 }

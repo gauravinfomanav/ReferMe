@@ -145,6 +145,7 @@ class _ReferralsScreenState extends State<ReferralsScreen>
             otherUser: receivedReferral.otherUser,
             userRole: 'target',
             referralMessage: receivedReferral.referralMessage,
+            isGlobalUser: receivedReferral.isGlobalUser,
           );
           allSentItems.add(responseReferral);
         }
@@ -264,19 +265,24 @@ class _ReferralsScreenState extends State<ReferralsScreen>
     final otherUser = referral.otherUser;
     if (otherUser == null) return const SizedBox.shrink();
 
+    // Get the appropriate name to display
+    final displayName = referral.isGlobalUser 
+        ? _maskName(otherUser.name)
+        : otherUser.name;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Color(AppConstants.primaryColorHex).withOpacity(0.08),
+          color: Color(AppConstants.primaryColorHex).withOpacity(0.06),
         ),
         boxShadow: [
           BoxShadow(
-            color: Color(AppConstants.primaryColorHex).withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
             spreadRadius: 0,
           ),
         ],
@@ -290,244 +296,188 @@ class _ReferralsScreenState extends State<ReferralsScreen>
               isFromReceivedTab: !isSent,
             ));
           },
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                // Header with user info and status
-                Row(
-                  children: [
-                    // User avatar
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            Color(AppConstants.primaryColorHex),
-                            Color(AppConstants.primaryColorHex).withOpacity(0.7),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(AppConstants.primaryColorHex).withOpacity(0.15),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(1.5),
-                      child: CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 24,
-                        child: Text(
-                          _getInitials(otherUser.name),
-                          style: TextStyle(
-                            color: Color(AppConstants.primaryColorHex),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // User info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            otherUser.name,
-                            style: TextStyle(
-                              color: Color(AppConstants.primaryColorHex),
-                              fontWeight: FontWeight.w700,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            otherUser.email,
-                            style: TextStyle(
-                              color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Status badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: referralController.getReferralStatusColor(referral.status).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: referralController.getReferralStatusColor(referral.status).withOpacity(0.3),
-                        ),
-                      ),
-                      child: Text(
-                        referralController.getReferralStatusText(referral.status),
-                        style: TextStyle(
-                          color: referralController.getReferralStatusColor(referral.status),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                
-                // Compact status indicator
+                // User avatar
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: referral.type == 'response' 
-                        ? const Color(0xFF4CAF50).withOpacity(0.1)
-                        : Color(AppConstants.primaryColorHex).withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: referral.type == 'response'
-                          ? const Color(0xFF4CAF50).withOpacity(0.2)
-                          : Color(AppConstants.primaryColorHex).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(AppConstants.primaryColorHex),
+                        Color(AppConstants.primaryColorHex).withOpacity(0.7),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  padding: const EdgeInsets.all(1),
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    radius: 20,
+                    child: Text(
+                      _getInitials(displayName),
+                      style: TextStyle(
+                        color: Color(AppConstants.primaryColorHex),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
+                // User info and details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              displayName,
+                              style: TextStyle(
+                                color: Color(AppConstants.primaryColorHex),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Status badge - hide pending in received tab when reply button shows
+                          if (!(!isSent && referral.status == 'pending'))
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: referralController.getReferralStatusColor(referral.status).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                referralController.getReferralStatusText(referral.status),
+                                style: TextStyle(
+                                  color: referralController.getReferralStatusColor(referral.status),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      
+                      // Timestamp and response indicator
+                      Row(
                         children: [
                           Icon(
-                        referral.type == 'response' 
-                            ? Icons.check_circle_rounded
-                            : (isSent ? Icons.send_rounded : Icons.inbox_rounded),
-                        size: 14,
-                        color: referral.type == 'response'
-                            ? const Color(0xFF4CAF50)
-                            : Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        referral.type == 'response' 
-                            ? 'Response sent'
-                            : (isSent ? 'Request sent' : 'Request received'),
-                        style: TextStyle(
-                          color: referral.type == 'response'
-                              ? const Color(0xFF4CAF50)
-                              : Color(AppConstants.primaryColorHex).withOpacity(0.6),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                      if (referral.type == 'response' && referral.referralMessage?.link != null) ...[
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.link_rounded,
-                          color: const Color(0xFF4CAF50),
-                          size: 12,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Footer with timestamp and action
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      size: 14,
-                      color: Color(AppConstants.primaryColorHex).withOpacity(0.5),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      referralController.formatDate(referral.createdAt),
-                      style: TextStyle(
-                        color: Color(AppConstants.primaryColorHex).withOpacity(0.5),
-                        fontSize: 12,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (referral.status == 'pending' && !isSent)
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Color(AppConstants.primaryColorHex),
-                              Color(AppConstants.primaryColorHex).withOpacity(0.8),
-                            ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: Color(AppConstants.primaryColorHex).withOpacity(0.4),
                           ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(AppConstants.primaryColorHex).withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
+                          const SizedBox(width: 4),
+                          Text(
+                            referralController.formatDate(referral.createdAt),
+                            style: TextStyle(
+                              color: Color(AppConstants.primaryColorHex).withOpacity(0.4),
+                              fontSize: 11,
                             ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              Get.to(() => ReferralChatScreen(
-                                referral: referral,
-                                isFromReceivedTab: !isSent,
-                              ));
-                            },
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          if (referral.type == 'response') ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4CAF50).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.reply_rounded,
-                                    color: Colors.white,
-                                    size: 16,
+                                    Icons.check_circle_rounded,
+                                    size: 10,
+                                    color: const Color(0xFF4CAF50),
                                   ),
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: 3),
                                   Text(
-                                    'Reply',
+                                    'Response',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: const Color(0xFF4CAF50),
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 14,
+                                      fontSize: 10,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                        ),
+                          ],
+                        ],
                       ),
-                    if (referral.status == 'completed')
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle_rounded,
-                            color: const Color(0xFF4CAF50),
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Completed',
-                            style: TextStyle(
-                              color: const Color(0xFF4CAF50),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
+                    ],
+                  ),
+                ),
+                
+                // Action buttons - Clean logic: no duplicates
+                if (isSent) ...[
+                  // SENT TAB: Show nothing (status already in main badge)
+                  const SizedBox.shrink(),
+                ] else ...[
+                  // RECEIVED TAB: Show action only
+                  if (referral.status == 'pending')
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Color(AppConstants.primaryColorHex),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(AppConstants.primaryColorHex).withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                  ],
-                ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Get.to(() => ReferralChatScreen(
+                              referral: referral,
+                              isFromReceivedTab: true,
+                            ));
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.reply_rounded,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Reply',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                ],
               ],
             ),
           ),
@@ -536,6 +486,39 @@ class _ReferralsScreenState extends State<ReferralsScreen>
     );
   }
 
+  String _maskName(String name) {
+    if (name.isEmpty) return '*****';
+    
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      // For names with multiple words like "Gaurav Malode"
+      final firstName = parts[0];
+      final lastName = parts[1];
+      
+      String maskedFirstName = '';
+      if (firstName.length <= 3) {
+        maskedFirstName = firstName;
+      } else {
+        maskedFirstName = '${firstName.substring(0, 3)}***';
+      }
+      
+      String maskedLastName = '';
+      if (lastName.length <= 3) {
+        maskedLastName = '***${lastName}';
+      } else {
+        maskedLastName = '***${lastName.substring(lastName.length - 3)}';
+      }
+      
+      return '$maskedFirstName $maskedLastName';
+    } else {
+      // For single word names like "Gaurav"
+      if (name.length <= 3) {
+        return name;
+      } else {
+        return '${name.substring(0, 3)}***';
+      }
+    }
+  }
 
 
   String _getInitials(String name) {

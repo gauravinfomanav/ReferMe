@@ -49,7 +49,7 @@ class ReferralController extends GetxController {
           'Authorization': 'Bearer $token',
         },
       );
-
+    
       if (sentResponse.statusCode == 200) {
         final sentData = ReferralResponse.fromJson(jsonDecode(sentResponse.body));
         if (sentData.success && sentData.data?.referrals != null) {
