@@ -91,10 +91,13 @@ class _ButtonContent extends StatelessWidget {
       return Text(
         text,
         style: TextStyle(
-          fontSize: 20,
+          fontSize: 18,
+          
           fontWeight: FontWeight.w500,
           fontFamily: AppConstants.newFontFamily,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
     }
 

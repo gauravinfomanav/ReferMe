@@ -198,51 +198,41 @@ class _LoginScreenState extends State<LoginScreen> {
                     // ),
 
                     const SizedBox(height: 40),
+
+                    // Login Button
+                    Obx(() => AppButton(
+                          text: 'Login',
+                          onPressed: _handleLogin,
+                          isLoading: _authController.isLoading,
+                        )),
+
+                    const SizedBox(height: 24),
+
+                    // Sign Up Link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        MusaffaAutoSizeText.headlineSmall(
+                          'Don\'t have an account? ',
+                          color: Colors.grey.shade600,
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Get.to(() => const SignUpScreen());
+                          },
+                          child: MusaffaAutoSizeText.headlineSmall(
+                            'Sign Up',
+                            fontWeight: FontWeight.w600,
+                            color: Color(AppConstants.primaryColorHex),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
-            ),
-          ),
-
-          // Bottom Section with Login Button
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Login Button
-                Obx(() => AppButton(
-                      text: 'Login',
-                      onPressed: _handleLogin,
-                      isLoading: _authController.isLoading,
-                    )),
-
-                const SizedBox(height: 16),
-
-                // Sign Up Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    MusaffaAutoSizeText.headlineSmall(
-                      'Don\'t have an account? ',
-                      color: Colors.grey.shade600,
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Get.to(() => const SignUpScreen());
-                      },
-                      child: MusaffaAutoSizeText.headlineSmall(
-                        'Sign Up',
-                        fontWeight: FontWeight.w600,
-                        color: Color(AppConstants.primaryColorHex),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(
-                    height:
-                        MediaQuery.of(context).viewInsets.bottom > 0 ? 16 : 0),
-              ],
             ),
           ),
         ],

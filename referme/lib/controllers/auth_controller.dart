@@ -4,7 +4,6 @@ import 'package:referme/screens/main_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import '../services/auth_service.dart';
-import '../screens/dashboard_screen.dart';
 import '../screens/select_card_screen.dart';
 import '../utils/custom_snackbar.dart';
 
@@ -109,8 +108,8 @@ class AuthController extends GetxController {
           message: response['message'] ?? 'Account created successfully!',
         );
         
-        // Navigate to card selection screen instead of dashboard
-        Get.off(() => SelectCardScreen());
+        // Navigate to card preference screen instead of card selection screen
+        Get.off(() => const SelectCardScreen());
       } else {
         // Handle API error response
         CustomSnackBar.showError(

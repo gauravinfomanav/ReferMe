@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:referme/screens/main_screen.dart';
 import '../constants/app_constants.dart';
 import '../controllers/card_selection_controller.dart';
 import '../controllers/contacts_controller.dart';
-import '../screens/dashboard_screen.dart';
 import '../utils/autotextsize.dart';
 import '../utils/app_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../utils/custom_snackbar.dart';
+import '../screens/card_preference_screen.dart';
 
 class SelectCardScreen extends StatefulWidget {
   const SelectCardScreen({super.key});
@@ -450,8 +448,8 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
       // Execute all API calls in parallel
       await Future.wait(apiCalls);
       
-      // Navigate directly without delay
-      Get.offAll(() => const MainScreen());
+      // Navigate to card preference screen instead of main screen
+      Get.off(() => const CardPreferenceScreen());
       
     } catch (e) {
       print('Error during navigation: $e');
@@ -498,7 +496,7 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
                     ),
                     const SizedBox(height: 16),
                     MusaffaAutoSizeText.bodyLarge(
-                      _isNavigating ? 'Setting up your account...' : 'Loading...',
+                      'Loading...',
                       color: Color(AppConstants.primaryColorHex),
                       textAlign: TextAlign.center,
                     ),
