@@ -8,6 +8,8 @@ import '../controllers/auth_controller.dart';
 import '../controllers/profile_controller.dart';
 import '../controllers/card_selection_controller.dart';
 import '../screens/login_screen.dart';
+import '../screens/select_card_screen.dart';
+import '../screens/card_preference_screen.dart';
 import '../utils/autotextsize.dart';
 import '../utils/custom_snackbar.dart';
 
@@ -294,10 +296,18 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         const Divider(),
                         _buildProfileOption(
-                          icon: CupertinoIcons.creditcard,
+                          icon: Icons.add_card_sharp,
                           title: 'Add More Cards',
                           onTap: () {
-                            CustomSnackBar.show(message: 'Coming Soon!');
+                            Get.to(() => const SelectCardScreen(isFromProfile: true));
+                          },
+                        ),
+                        const Divider(),
+                        _buildProfileOption(
+                          icon: CupertinoIcons.heart,
+                          title: 'Change Preference',
+                          onTap: () {
+                            Get.to(() => const CardPreferenceScreen(isFromProfile: true));
                           },
                         ),
                         const Divider(),

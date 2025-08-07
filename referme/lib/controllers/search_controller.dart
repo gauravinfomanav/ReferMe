@@ -121,7 +121,7 @@ class SearchController extends GetxController {
           totalContacts.value = responseData['totalContacts'] ?? 0;
           totalGlobalUsers.value = responseData['totalGlobalUsers'] ?? 0;
           
-          print('✅ Search completed: ${contacts.length} contacts, ${globalUsers.length} global users');
+          print('✅ Search completed: ${contacts.length} contacts, ${globalUsers.length} community users');
         } else {
           CustomSnackBar.showError(message: data['message'] ?? 'Search failed');
           clearResults();
@@ -176,7 +176,7 @@ class SearchController extends GetxController {
   bool get hasContacts => contacts.isNotEmpty;
   bool get hasGlobalUsers => globalUsers.isNotEmpty;
   
-  // Method to check if a user is a global user
+  // Method to check if a user is a community user
   bool isGlobalUser(String userId) {
     return globalUsers.any((user) => user['id'] == userId);
   }

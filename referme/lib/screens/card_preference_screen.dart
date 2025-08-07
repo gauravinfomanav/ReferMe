@@ -9,9 +9,16 @@ import '../utils/autotextsize.dart';
 import '../utils/app_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/custom_snackbar.dart';
+import '../services/user_preferences_service.dart';
+import '../controllers/dashboard_controller.dart';
 
 class CardPreferenceScreen extends StatefulWidget {
-  const CardPreferenceScreen({super.key});
+  final bool isFromProfile;
+  
+  const CardPreferenceScreen({
+    super.key,
+    this.isFromProfile = false,
+  });
 
   @override
   State<CardPreferenceScreen> createState() => _CardPreferenceScreenState();
@@ -91,13 +98,13 @@ class _CardPreferenceScreenState extends State<CardPreferenceScreen> {
     
     if (_totalContacts > 0 && _totalGlobalUsers > 0) {
       title = 'Great! Found Users';
-      message = 'You have $_totalContacts contacts and $_totalGlobalUsers global users who have this card.';
+      message = 'You have $_totalContacts contacts and $_totalGlobalUsers community users who have this card.';
     } else if (_totalContacts > 0) {
       title = 'Found Contacts!';
       message = '$_totalContacts of your contacts have this card. You can ask them for referrals.';
     } else if (_totalGlobalUsers > 0) {
-      title = 'Found Global Users!';
-      message = '$_totalGlobalUsers global users have this card. You can request referrals from them.';
+      title = 'Found Community Users!';
+      message = '$_totalGlobalUsers community users have this card. You can request referrals from them.';
     } else {
       title = 'No Users Found';
       message = 'No users found with this card yet. Don\'t worry! You can explore the dashboard to discover other cards or invite your contacts who might have this card.';
@@ -205,7 +212,7 @@ class _CardPreferenceScreenState extends State<CardPreferenceScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Global Users',
+                                'Community Users',
                                 style: TextStyle(
                                   color: Color(AppConstants.primaryColorHex),
                                   fontWeight: FontWeight.w600,
@@ -282,50 +289,58 @@ class _CardPreferenceScreenState extends State<CardPreferenceScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Get.back();
-              // Show setting up account loader before navigating
-              Get.dialog(
-                WillPopScope(
-                  onWillPop: () async => false,
-                  child: AlertDialog(
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    content: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(AppConstants.primaryColorHex),
+              
+              if (widget.isFromProfile) {
+                // If coming from profile, reset dashboard state and navigate to main screen
+                final dashboardController = Get.find<DashboardController>();
+                await dashboardController.resetSearchState();
+                Get.offAll(() => const MainScreen());
+              } else {
+                // Show setting up account loader before navigating (for signup flow)
+                Get.dialog(
+                  WillPopScope(
+                    onWillPop: () async => false,
+                    child: AlertDialog(
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      content: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(AppConstants.primaryColorHex),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Setting up your account...',
-                            style: TextStyle(
-                              color: Color(AppConstants.primaryColorHex),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                            const SizedBox(height: 16),
+                            Text(
+                              'Setting up your account...',
+                              style: TextStyle(
+                                color: Color(AppConstants.primaryColorHex),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                barrierDismissible: false,
-              );
-              
-              // Navigate after a short delay to show the loader
-              Future.delayed(const Duration(milliseconds: 1500), () {
-                Get.off(() => const MainScreen());
-              });
+                  barrierDismissible: false,
+                );
+                
+                // Navigate after a short delay to show the loader
+                Future.delayed(const Duration(milliseconds: 1500), () {
+                  Get.off(() => const MainScreen());
+                });
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(AppConstants.primaryColorHex),
@@ -605,6 +620,11 @@ class _CardPreferenceScreenState extends State<CardPreferenceScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () {
                                   _selectedCardName.value = card;
+                                  // Save the user's preferred card
+                                  UserPreferencesService.savePreferredCard(
+                                    card,
+                                    _controller.selectedBank.value,
+                                  );
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.all(16),

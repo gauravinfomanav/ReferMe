@@ -8,9 +8,15 @@ import '../utils/autotextsize.dart';
 import '../utils/app_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../screens/card_preference_screen.dart';
+import '../screens/main_screen.dart';
 
 class SelectCardScreen extends StatefulWidget {
-  const SelectCardScreen({super.key});
+  final bool isFromProfile;
+  
+  const SelectCardScreen({
+    super.key,
+    this.isFromProfile = false,
+  });
 
   @override
   State<SelectCardScreen> createState() => _SelectCardScreenState();
@@ -26,11 +32,41 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
   @override
   void initState() {
     super.initState();
-    // Request contact permission when screen loads
+    // Request contact permission when screen loads (only for signup flow)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('🔄 Requesting contact permission...');
-      _requestContactPermissionWithUI();
+      if (!widget.isFromProfile) {
+        print('🔄 Requesting contact permission...');
+        _requestContactPermissionWithUI();
+      } else {
+        // Load user's existing cards when coming from profile
+        _loadUserExistingCards();
+      }
     });
+  }
+
+  // Load user's existing cards when coming from profile
+  Future<void> _loadUserExistingCards() async {
+    try {
+      // Load the user's existing cards from the controller
+      await _controller.loadBanks();
+      
+      // Load user's existing selected cards from SharedPreferences
+      final savedCards = await CardSelectionController.getSavedCards();
+      _controller.selectedCards.assignAll(savedCards);
+      
+      // If user has saved cards, select the first bank that has any of those cards
+      if (savedCards.isNotEmpty) {
+        for (final bank in _controller.banks) {
+          if (bank.cards.any((card) => savedCards.contains(card))) {
+            _controller.selectBank(bank.bank);
+            break;
+          }
+        }
+      }
+      
+    } catch (e) {
+      print('Error loading user existing cards: $e');
+    }
   }
 
   // Improved method to handle permission with better UI flow
@@ -440,16 +476,22 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
       // 1. Always save selected cards
       apiCalls.add(_controller.saveCardSelectionStatus());
       
-      // 2. Upload contacts only if permission is granted
-      if (!_contactsController.permissionDenied.value) {
-        apiCalls.add(_contactsController.uploadContacts());
+      if (widget.isFromProfile) {
+        // If coming from profile, save cards and go to dashboard
+        await _controller.saveCardSelectionStatus();
+        Get.offAll(() => const MainScreen()); // Go to dashboard screen
+      } else {
+        // 2. Upload contacts only if permission is granted (for signup flow)
+        if (!_contactsController.permissionDenied.value) {
+          apiCalls.add(_contactsController.uploadContacts());
+        }
+        
+        // Execute all API calls in parallel
+        await Future.wait(apiCalls);
+        
+        // Navigate to card preference screen instead of main screen
+        Get.off(() => const CardPreferenceScreen());
       }
-      
-      // Execute all API calls in parallel
-      await Future.wait(apiCalls);
-      
-      // Navigate to card preference screen instead of main screen
-      Get.off(() => const CardPreferenceScreen());
       
     } catch (e) {
       print('Error during navigation: $e');
@@ -476,8 +518,8 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      // Prevent back button press if coming from signup
-      onWillPop: () async => false,
+      // Allow back button press if coming from profile
+      onWillPop: () async => widget.isFromProfile,
       child: Scaffold(
         backgroundColor: Color(AppConstants.backgroundColorHex),
         body: Obx(() {
@@ -506,8 +548,8 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
             );
           }
           
-          // Show permission overlay
-          if (_contactsController.permissionDenied.value) {
+          // Show permission overlay (only for signup flow)
+          if (!widget.isFromProfile && _contactsController.permissionDenied.value) {
             return Container(
               color:  Color(AppConstants.backgroundColorHex),
               padding: const EdgeInsets.all(32),
@@ -567,13 +609,13 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
             backgroundColor: Color(AppConstants.backgroundColorHex),
             appBar: AppBar(
               title: MusaffaAutoSizeText.headlineMedium(
-                'Select Your Credit Card',
+                widget.isFromProfile ? 'Update Your Cards' : 'Select Your Credit Card',
                 color: Color(AppConstants.primaryColorHex),
                 fontWeight: FontWeight.w600,
               ),
               backgroundColor: Colors.transparent,
               elevation: 0,
-              automaticallyImplyLeading: false,
+              automaticallyImplyLeading: widget.isFromProfile,
             ),
             body: Column(
               children: [
@@ -866,7 +908,9 @@ class _SelectCardScreenState extends State<SelectCardScreen> {
                   child: Obx(() => AppButton(
                     text: _controller.selectedCards.isEmpty
                         ? 'Select at least one card'
-                        : 'Continue with ${_controller.selectedCards.length} ${_controller.selectedCards.length == 1 ? 'card' : 'cards'}',
+                        : widget.isFromProfile
+                            ? 'Update ${_controller.selectedCards.length} ${_controller.selectedCards.length == 1 ? 'card' : 'cards'}'
+                            : 'Continue with ${_controller.selectedCards.length} ${_controller.selectedCards.length == 1 ? 'card' : 'cards'}',
                     onPressed: _controller.selectedCards.isEmpty
                         ? null
                         : _handleDashboardNavigation,

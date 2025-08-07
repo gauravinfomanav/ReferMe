@@ -6,9 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:referme/screens/all_contacts_screen.dart';
 import '../constants/app_constants.dart';
 import '../controllers/matched_contacts_controller.dart';
-import '../controllers/contacts_controller.dart';
 import '../controllers/referral_controller.dart';
-import '../controllers/auth_controller.dart';
+import '../controllers/dashboard_controller.dart';
 import '../utils/autotextsize.dart';
 import 'referrals_screen.dart';
 import 'referral_chat_screen.dart';
@@ -20,18 +19,63 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final MatchedContactsController contactsController = Get.put(MatchedContactsController());
-    final ContactsController contactsUploadController = Get.put(ContactsController());
+    final DashboardController dashboardController = Get.put(DashboardController());
 
     return Scaffold(
       backgroundColor: Color(AppConstants.backgroundColorHex),
       body: SafeArea(
-        child: Obx(() 
-           {
-            if (contactsController.isLoading.value) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
+        child: Obx(() {
+          // Show loading for any loading state to prevent flickering
+          if (contactsController.isLoading.value || dashboardController.isSearching) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(AppConstants.primaryColorHex),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    dashboardController.isSearching 
+                        ? 'Searching for users with ${dashboardController.preferredCard}...'
+                        : 'Loading your network...',
+                    style: TextStyle(
+                      color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // Don't show content until we've organized users
+          if (!dashboardController.hasSearched) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(AppConstants.primaryColorHex),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Organizing your network...',
+                    style: TextStyle(
+                      color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
 
           final contactsData = contactsController.contactsData.value;
           if (contactsData == null) {
@@ -52,10 +96,8 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () async {
-                     
-                     
-                      
                       await contactsController.fetchMatchedContacts();
+                      await dashboardController.organizeUsers();
                     },
                     child: const Text('Refresh Contacts'),
                   ),
@@ -88,24 +130,12 @@ class DashboardScreen extends StatelessWidget {
                                 const SizedBox(height: 8),
                                 MusaffaAutoSizeText.bodyLarge(
                                   maxLines: 2,
-                                  'Connect with your network and share reffrals to earn rewards.',
+                                  'Connect with your network and share referrals to earn rewards.',
                                   color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
                                 ),
                               ],
                             ),
                           ),
-                          // IconButton(
-                          //   onPressed: () async {
-                          //     // Refresh contacts: upload all contacts first, then fetch matched
-                          //     await contactsUploadController.loadContacts();
-                          //     await contactsUploadController.uploadContacts();
-                          //     await contactsController.fetchMatchedContacts();
-                          //   },
-                          //   icon: Icon(
-                          //     Icons.refresh,
-                          //     color: Color(AppConstants.primaryColorHex),
-                          //   ),
-                          // ),
                         ],
                       ),
                     ],
@@ -127,8 +157,13 @@ class DashboardScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildStatItem(
-                          'ReferMe Users',
-                          contactsData.matchedUsers.length.toString(),
+                          dashboardController.hasPreferredCard 
+                              ? 'With Your Card'
+                              : 'ReferMe Users',
+                          dashboardController.hasPreferredCard
+                              ? (dashboardController.preferredCardContacts.length + 
+                                 dashboardController.preferredCardGlobalUsers.length).toString()
+                              : dashboardController.usersWithPreferredCard.length.toString(),
                         ),
                         Container(
                           width: 1,
@@ -136,8 +171,17 @@ class DashboardScreen extends StatelessWidget {
                           color: Colors.white.withOpacity(0.2),
                         ),
                         _buildStatItem(
-                          'Potential Users',
-                          contactsData.unmatchedContacts.length.toString(),
+                          'Other Users',
+                          dashboardController.usersWithOtherCards.length.toString(),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 40,
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                        _buildStatItem(
+                          'To Invite',
+                          dashboardController.contactsToInvite.length.toString(),
                         ),
                       ],
                     ),
@@ -147,8 +191,162 @@ class DashboardScreen extends StatelessWidget {
 
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-              // Matched Users Section
-              if (contactsData.matchedUsers.isNotEmpty) ...[
+              // Priority Section: Users with Preferred Card
+              if (dashboardController.hasPreferredCard && 
+                  (dashboardController.preferredCardContacts.isNotEmpty || 
+                   dashboardController.preferredCardGlobalUsers.isNotEmpty)) ...[
+                // Show contacts with preferred card
+                if (dashboardController.preferredCardContacts.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.people_rounded,
+                                color: Color(AppConstants.primaryColorHex),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              MusaffaAutoSizeText.bodyMedium(
+                                'From Contacts (${dashboardController.preferredCardContacts.length})',
+                                color: Color(AppConstants.primaryColorHex),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 24),
+                            child: Text(
+                              'Your contacts who have ${dashboardController.preferredCard}',
+                              style: TextStyle(
+                                color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final user = dashboardController.preferredCardContacts[index];
+                          final convertedUser = _convertApiUserToContact(user, false);
+                          return _buildContactCardWithDirectReferral(convertedUser, isMatched: true, contactsController: contactsController);
+                        },
+                        childCount: dashboardController.preferredCardContacts.length,
+                      ),
+                    ),
+                  ),
+                ],
+                // Show community users with preferred card
+                if (dashboardController.preferredCardGlobalUsers.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.public_rounded,
+                                color: Color(AppConstants.primaryColorHex),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              MusaffaAutoSizeText.bodyMedium(
+                                'Community Users (${dashboardController.preferredCardGlobalUsers.length})',
+                                color: Color(AppConstants.primaryColorHex),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 24),
+                            child: Text(
+                              'Other community users who have ${dashboardController.preferredCard}',
+                              style: TextStyle(
+                                color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final user = dashboardController.preferredCardGlobalUsers[index];
+                          final convertedUser = _convertApiUserToContact(user, true);
+                          return _buildContactCardWithDirectReferral(convertedUser, isMatched: true, contactsController: contactsController);
+                        },
+                        childCount: dashboardController.preferredCardGlobalUsers.length,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+
+              // Message for users with preferred card but no data found
+              if (dashboardController.hasPreferredCard && 
+                  dashboardController.preferredCardContacts.isEmpty && 
+                  dashboardController.preferredCardGlobalUsers.isEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Color(AppConstants.primaryColorHex).withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'No users found with ${dashboardController.preferredCard}',
+                            style: TextStyle(
+                              color: Color(AppConstants.primaryColorHex),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'You can invite your contacts or change your preference in profile',
+                            style: TextStyle(
+                              color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              // Secondary Section: Other ReferMe Users
+              if (dashboardController.usersWithOtherCards.isNotEmpty) ...[
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -161,7 +359,7 @@ class DashboardScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         MusaffaAutoSizeText.titleMedium(
-                          'ReferMe Users',
+                          'Other ReferMe Users with cards',
                           color: Color(AppConstants.primaryColorHex),
                           fontWeight: FontWeight.w600,
                         ),
@@ -174,17 +372,17 @@ class DashboardScreen extends StatelessWidget {
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        final user = contactsData.matchedUsers[index];
+                        final user = dashboardController.usersWithOtherCards[index];
                         return _buildContactCard(user, isMatched: true, contactsController: contactsController);
                       },
-                      childCount: contactsData.matchedUsers.length,
+                      childCount: dashboardController.usersWithOtherCards.length,
                     ),
                   ),
                 ),
               ],
 
-              // Unmatched Contacts Section
-              if (contactsData.unmatchedContacts.isNotEmpty) ...[
+              // Invite Section: Contacts to Invite
+              if (dashboardController.contactsToInvite.isNotEmpty) ...[
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -210,16 +408,16 @@ class DashboardScreen extends StatelessWidget {
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        final contact = contactsData.unmatchedContacts[index];
+                        final contact = dashboardController.contactsToInvite[index];
                         return _buildContactCard(contact, isMatched: false, contactsController: contactsController);
                       },
-                      childCount: contactsData.unmatchedContacts.length > 15 
+                      childCount: dashboardController.contactsToInvite.length > 15 
                           ? 15 
-                          : contactsData.unmatchedContacts.length,
+                          : dashboardController.contactsToInvite.length,
                     ),
                   ),
                 ),
-                if (contactsData.unmatchedContacts.length > 15)
+                if (dashboardController.contactsToInvite.length > 15)
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
@@ -249,7 +447,7 @@ class DashboardScreen extends StatelessWidget {
                           child: InkWell(
                             onTap: () {
                               Get.to(() => AllContactsScreen(
-                                contacts: contactsData.unmatchedContacts,
+                                contacts: dashboardController.contactsToInvite,
                                 contactsController: contactsController,
                               ));
                             },
@@ -282,7 +480,7 @@ class DashboardScreen extends StatelessWidget {
                   ),
               ],
 
-              // Bottom Paddingr
+              // Bottom Padding
               const SliverToBoxAdapter(
                 child: SizedBox(height: 48),
               ),
@@ -309,7 +507,66 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
+  // Helper method to convert API Map objects to the format expected by _buildContactCard
+  dynamic _convertApiUserToContact(Map<String, dynamic> apiUser, bool isGlobalUser) {
+    return {
+      'id': apiUser['id'] ?? '', // Add the user ID from API response
+      'name': apiUser['name'] ?? '',
+      'email': apiUser['email'] ?? '',
+      'phone': apiUser['phone'] ?? '',
+      'hasCards': (apiUser['cards'] as List?)?.isNotEmpty ?? false,
+      'cards': apiUser['cards'] ?? [],
+      'contactName': apiUser['name'] ?? '', // For API users, use name as contactName
+      'isGlobalUser': isGlobalUser,
+    };
+  }
+
   Widget _buildContactCard(dynamic contact, {required bool isMatched, required MatchedContactsController contactsController}) {
+    // Helper functions to safely access contact properties
+    String getContactName() {
+      if (contact is Map<String, dynamic>) {
+        return contact['name']?.toString() ?? '';
+      }
+      return contact.name?.toString() ?? '';
+    }
+    
+    String getContactPhone() {
+      if (contact is Map<String, dynamic>) {
+        return contact['phone']?.toString() ?? '';
+      }
+      return contact.phone?.toString() ?? '';
+    }
+    
+    bool getHasCards() {
+      if (contact is Map<String, dynamic>) {
+        final cards = contact['cards'];
+        return cards is List && cards.isNotEmpty;
+      }
+      return contact.hasCards ?? false;
+    }
+    
+    List getCards() {
+      if (contact is Map<String, dynamic>) {
+        final cards = contact['cards'];
+        return cards is List ? cards : [];
+      }
+      return contact.cards ?? [];
+    }
+    
+    String getContactNameForDisplay() {
+      if (contact is Map<String, dynamic>) {
+        return contact['contactName']?.toString() ?? contact['name']?.toString() ?? '';
+      }
+      return contact.contactName?.toString() ?? contact.name?.toString() ?? '';
+    }
+    
+    String getUserId() {
+      if (contact is Map<String, dynamic>) {
+        return contact['id']?.toString() ?? '';
+      }
+      return contact.userId?.toString() ?? '';
+    }
+
     final cardContent = Card(
       elevation: 2,
       shadowColor: Color(AppConstants.primaryColorHex).withOpacity(0.1),
@@ -346,7 +603,7 @@ class DashboardScreen extends StatelessWidget {
                 backgroundColor: Colors.white,
                 radius: 20,
                 child: Text(
-                  contactsController.getInitials(contact.name),
+                  contactsController.getInitials(getContactName()),
                   style: TextStyle(
                     color: Color(AppConstants.primaryColorHex),
                     fontWeight: FontWeight.w600,
@@ -367,48 +624,22 @@ class DashboardScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: MusaffaAutoSizeText.titleMedium(
-                          contact.name,
+                          getContactName(),
                           color: Color(AppConstants.primaryColorHex),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (isMatched)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Color(AppConstants.primaryColorHex).withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.credit_card,
-                                size: 12,
-                                color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                contact.hasCards ? '${contact.cards.length}' : '0',
-                                style: TextStyle(
-                                  color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      
                     ],
                   ),
                   const SizedBox(height: 4),
                   // Subtitle (Contact Info or Saved Name)
                   Text(
                     isMatched
-                        ? (contact.contactName != contact.name
-                            ? 'Saved as ${contact.contactName}'
+                        ? (getContactNameForDisplay() != getContactName()
+                            ? 'Saved as ${getContactNameForDisplay()}'
                             : 'ReferMe User')
-                        : contact.phone,
+                        : getContactPhone(),
                     style: TextStyle(
                       color: Color(AppConstants.primaryColorHex).withOpacity(0.5),
                       fontSize: 12,
@@ -538,7 +769,7 @@ class DashboardScreen extends StatelessWidget {
                               backgroundColor: Colors.white,
                               radius: 24,
                               child: Text(
-                                contactsController.getInitials(contact.name),
+                                contactsController.getInitials(getContactName()),
                                 style: TextStyle(
                                   color: Color(AppConstants.primaryColorHex),
                                   fontWeight: FontWeight.bold,
@@ -553,16 +784,16 @@ class DashboardScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  contact.name,
+                                  getContactName(),
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 18,
                                     color: Color(AppConstants.primaryColorHex),
                                   ),
                                 ),
-                                if (contact.contactName != contact.name)
+                                if (getContactNameForDisplay() != getContactName())
                                   Text(
-                                    'Saved as: ${contact.contactName}',
+                                    'Saved as: ${getContactNameForDisplay()}',
                                     style: TextStyle(
                                       color: Color(AppConstants.primaryColorHex).withOpacity(0.6),
                                       fontSize: 12,
@@ -583,7 +814,7 @@ class DashboardScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Compact cards section header
-                            if (contact.hasCards && contact.cards.isNotEmpty) ...[
+                            if (getHasCards() && getCards().isNotEmpty) ...[
                               Row(
                                 children: [
                                   Icon(
@@ -608,7 +839,7 @@ class DashboardScreen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      '${contact.cards.length}',
+                                      '${getCards().length}',
                                       style: TextStyle(
                                         color: Color(AppConstants.primaryColorHex),
                                         fontWeight: FontWeight.w600,
@@ -621,8 +852,8 @@ class DashboardScreen extends StatelessWidget {
                               const SizedBox(height: 12),
                               
                               // Compact cards list
-                              ...contact.cards.map((cardData) {
-                                return _buildCompactCardItem(cardData, contact.userId);
+                              ...getCards().map((cardData) {
+                                return _buildCompactCardItem(cardData, getUserId());
                               }).toList(),
                             ] else ...[
                               // Compact no cards state
@@ -676,6 +907,258 @@ class DashboardScreen extends StatelessWidget {
       );
     }
     return cardContent;
+  }
+
+  Widget _buildContactCardWithDirectReferral(dynamic contact, {required bool isMatched, required MatchedContactsController contactsController}) {
+    // Helper functions to safely access contact properties
+    String getContactName() {
+      if (contact is Map<String, dynamic>) {
+        return contact['name']?.toString() ?? '';
+      }
+      return contact.name?.toString() ?? '';
+    }
+    
+    String getContactPhone() {
+      if (contact is Map<String, dynamic>) {
+        return contact['phone']?.toString() ?? '';
+      }
+      return contact.phone?.toString() ?? '';
+    }
+    
+    bool getHasCards() {
+      if (contact is Map<String, dynamic>) {
+        final cards = contact['cards'];
+        return cards is List && cards.isNotEmpty;
+      }
+      return contact.hasCards ?? false;
+    }
+    
+    List getCards() {
+      if (contact is Map<String, dynamic>) {
+        final cards = contact['cards'];
+        return cards is List ? cards : [];
+      }
+      return contact.cards ?? [];
+    }
+    
+    String getContactNameForDisplay() {
+      if (contact is Map<String, dynamic>) {
+        return contact['contactName']?.toString() ?? contact['name']?.toString() ?? '';
+      }
+      return contact.contactName?.toString() ?? contact.name?.toString() ?? '';
+    }
+    
+    String getUserId() {
+      if (contact is Map<String, dynamic>) {
+        return contact['id']?.toString() ?? '';
+      }
+      return contact.userId?.toString() ?? '';
+    }
+    
+    // Check if this is a community user (from search API)
+    bool isGlobalUser() {
+      if (contact is Map<String, dynamic>) {
+        return contact['isGlobalUser'] == true;
+      }
+      return false;
+    }
+    
+    // Name masking function
+    String _maskName(String name) {
+      if (name.isEmpty) return '*****';
+      final parts = name.trim().split(' ');
+      if (parts.length >= 2) {
+        final firstName = parts[0];
+        final lastName = parts[1];
+        String maskedFirstName = (firstName.length <= 3) ? firstName : '${firstName.substring(0, 3)}***';
+        String maskedLastName = (lastName.length <= 3) ? '***$lastName' : '***${lastName.substring(lastName.length - 3)}';
+        return '$maskedFirstName $maskedLastName';
+      } else {
+        return (name.length <= 3) ? name : '${name.substring(0, 3)}***';
+      }
+    }
+    
+    // Mask name for community users
+    String getDisplayName() {
+      final name = getContactName();
+      if (isGlobalUser()) {
+        return _maskName(name);
+      }
+      return name;
+    }
+
+    return Card(
+      elevation: 2,
+      shadowColor: Color(AppConstants.primaryColorHex).withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            // Avatar Section
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    Color(AppConstants.primaryColorHex),
+                    Color(AppConstants.primaryColorHex).withOpacity(0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(AppConstants.primaryColorHex).withOpacity(0.15),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(1.5),
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
+                radius: 20,
+                child: Text(
+                  contactsController.getInitials(getDisplayName()),
+                  style: TextStyle(
+                    color: Color(AppConstants.primaryColorHex),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Info Section
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Name and Status Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: MusaffaAutoSizeText.titleMedium(
+                          getDisplayName(),
+                          color: Color(AppConstants.primaryColorHex),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      // Only show card count for non-search API users (existing matched contacts)
+                      if (isMatched && !isGlobalUser() && contact is! Map<String, dynamic>)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Color(AppConstants.primaryColorHex).withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                getHasCards() ? '${getCards().length}' : '0',
+                                style: TextStyle(
+                                  color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Subtitle (Contact Info or Saved Name)
+                  Text(
+                    isMatched
+                        ? (getContactNameForDisplay() != getContactName()
+                            ? 'Saved as ${getContactNameForDisplay()}'
+                                                            : (contact is Map<String, dynamic> 
+                                ? (isGlobalUser() ? 'Community User' : 'Contact')
+                                : 'ReferMe User'))
+                        : getContactPhone(),
+                    style: TextStyle(
+                      color: Color(AppConstants.primaryColorHex).withOpacity(0.5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Action Button
+            if (isMatched) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {
+                  // Get the first card from the user's cards list for referral
+                  final cards = getCards();
+                  if (cards.isNotEmpty) {
+                    final firstCard = cards.first;
+                    _requestReferral(firstCard, getUserId());
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(AppConstants.primaryColorHex),
+                        Color(AppConstants.primaryColorHex).withOpacity(0.8),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(AppConstants.primaryColorHex).withOpacity(0.15),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.share_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Request',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ] else ...[
+              // Only arrow for unmatched contacts
+              const SizedBox(width: 8),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: Color(AppConstants.primaryColorHex).withOpacity(0.3),
+                size: 16,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildCardItem(dynamic cardData) {
@@ -1384,3 +1867,4 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
   }
+

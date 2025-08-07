@@ -326,7 +326,7 @@ class _SearchScreenState extends State<SearchScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: MusaffaAutoSizeText.bodyMedium(
-                  'Found ${_searchControllerInstance.totalContacts.value} contacts and ${_searchControllerInstance.totalGlobalUsers.value} global users',
+                  'Found ${_searchControllerInstance.totalContacts.value} contacts and ${_searchControllerInstance.totalGlobalUsers.value} community users',
                   color: Color(AppConstants.primaryColorHex),
                 ),
               ),
@@ -344,9 +344,9 @@ class _SearchScreenState extends State<SearchScreen> {
           const SizedBox(height: 16),
         ],
         
-        // Global Users Section
+        // Community Users Section
         if (_searchControllerInstance.hasGlobalUsers) ...[
-          _buildSectionHeader('Global Users', _searchControllerInstance.totalGlobalUsers.value),
+          _buildSectionHeader('Community Users', _searchControllerInstance.totalGlobalUsers.value),
           const SizedBox(height: 8),
           ..._searchControllerInstance.globalUsers.map((user) => _buildUserCard(user, false)),
         ],
@@ -426,7 +426,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: MusaffaAutoSizeText.bodySmall(
-                isContact ? 'Contact' : 'Global User',
+                isContact ? 'Contact' : 'Community User',
                 color: isContact
                     ? Color(AppConstants.primaryColorHex)
                     : Colors.orange.shade700,
