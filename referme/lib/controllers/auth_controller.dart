@@ -4,7 +4,9 @@ import 'package:referme/screens/main_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import '../services/auth_service.dart';
+import '../screens/card_preference_screen.dart';
 import '../screens/select_card_screen.dart';
+import '../controllers/preference_controller.dart';
 import '../utils/custom_snackbar.dart';
 
 class AuthController extends GetxController {
@@ -68,7 +70,8 @@ class AuthController extends GetxController {
           message: response['message'] ?? 'Login successful!',
         );
         
-        Get.off(() => const MainScreen());
+        // Check preference status after successful login
+        await _checkPreferenceAndNavigate();
       } else {
         CustomSnackBar.showError(
           message: response['message'] ?? 'Login failed',
@@ -79,6 +82,32 @@ class AuthController extends GetxController {
      
     } finally {
       _isLoading.value = false;
+    }
+  }
+
+  Future<void> _checkPreferenceAndNavigate() async {
+    try {
+      print('🔍 DEBUG: Checking preference status after login');
+      
+      final preferenceController = Get.put(PreferenceController());
+      final preferenceStatusResponse = await preferenceController.checkPreferenceStatus();
+      
+      print('🔍 DEBUG: Login preference check');
+      print('🔍 DEBUG: Response success: ${preferenceStatusResponse.success}');
+      print('🔍 DEBUG: Has preferences: ${preferenceController.hasPreferences.value}');
+      print('🔍 DEBUG: Total count: ${preferenceController.totalCount.value}');
+      
+      if (preferenceStatusResponse.success && preferenceController.hasPreferences.value) {
+        print('✅ DEBUG: User has preferences, navigating to MainScreen');
+        Get.off(() => const MainScreen());
+      } else {
+        print('⚠️ DEBUG: User has no preferences, navigating to CardPreferenceScreen');
+        Get.off(() => const CardPreferenceScreen());
+      }
+    } catch (e) {
+      print('❌ DEBUG: Error checking preferences after login: $e');
+      // Fallback to main screen if preference check fails
+      Get.off(() => const MainScreen());
     }
   }
 
@@ -108,7 +137,7 @@ class AuthController extends GetxController {
           message: response['message'] ?? 'Account created successfully!',
         );
         
-        // Navigate to card preference screen instead of card selection screen
+        // Navigate to card selection screen for new users
         Get.off(() => const SelectCardScreen());
       } else {
         // Handle API error response

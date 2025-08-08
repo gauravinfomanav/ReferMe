@@ -76,14 +76,9 @@ class _SplashScreenState extends State<SplashScreen>
         return;
       }
 
-      // Check if card selection is completed
-      final isCardSelectionCompleted = await CardSelectionController.isCardSelectionCompleted();
-      
-      if (!isCardSelectionCompleted) {
-        Get.offAll(() => const SelectCardScreen());
-      } else {
-        Get.offAll(() => const MainScreen()); // Make sure this is MainScreen
-      }
+      // If user is already logged in, go to main screen
+      // Preference check will be handled after login
+      Get.offAll(() => const MainScreen());
     } catch (e) {
       print('Navigation error: $e');
       // If any error occurs, safely navigate to login

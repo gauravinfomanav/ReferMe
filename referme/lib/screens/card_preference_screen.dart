@@ -4,12 +4,12 @@ import 'package:get/get.dart';
 import '../constants/app_constants.dart';
 import '../controllers/card_selection_controller.dart';
 import '../controllers/search_controller.dart' as search_controller;
+import '../controllers/preference_controller.dart';
 import '../screens/main_screen.dart';
 import '../utils/autotextsize.dart';
 import '../utils/app_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/custom_snackbar.dart';
-import '../services/user_preferences_service.dart';
 import '../controllers/dashboard_controller.dart';
 
 class CardPreferenceScreen extends StatefulWidget {
@@ -27,6 +27,7 @@ class CardPreferenceScreen extends StatefulWidget {
 class _CardPreferenceScreenState extends State<CardPreferenceScreen> {
   final CardSelectionController _controller = Get.put(CardSelectionController());
   final search_controller.SearchController _searchController = Get.put(search_controller.SearchController());
+  final PreferenceController _preferenceController = Get.put(PreferenceController());
   
   bool _isSearching = false;
   final RxString _selectedCardName = ''.obs;
@@ -68,6 +69,27 @@ class _CardPreferenceScreenState extends State<CardPreferenceScreen> {
     });
 
     try {
+      // First, save the user's preference
+      final preferenceData = [
+        {
+          'bankName': _controller.selectedBank.value,
+          'cardName': _selectedCardName.value,
+          'priority': 10,
+          'isActive': true,
+        }
+      ];
+      
+      final preferenceResponse = await _preferenceController.addPreferences(preferenceData);
+      
+      if (!preferenceResponse.success) {
+        // If preference already exists (409), that's okay - continue
+        if (preferenceResponse.statusCode != 409) {
+          CustomSnackBar.showError(message: 'Failed to save preference');
+          return;
+        }
+      }
+      
+      // Then search for users
       await _searchController.searchUsers(
         query: _selectedCardName.value,
         type: 'cardName',
@@ -293,10 +315,63 @@ class _CardPreferenceScreenState extends State<CardPreferenceScreen> {
               Get.back();
               
               if (widget.isFromProfile) {
-                // If coming from profile, reset dashboard state and navigate to main screen
-                final dashboardController = Get.find<DashboardController>();
-                await dashboardController.resetSearchState();
-                Get.offAll(() => const MainScreen());
+                // If coming from profile, update the existing preference instead of creating new one
+                final firstPreference = _preferenceController.getFirstActivePreference();
+                if (firstPreference != null) {
+                  final updateData = {
+                    'bankName': _controller.selectedBank.value,
+                    'cardName': _selectedCardName.value,
+                    'priority': 10,
+                    'isActive': true,
+                  };
+                  
+                  final updateResponse = await _preferenceController.updatePreference(
+                    firstPreference['id'],
+                    updateData,
+                  );
+                  
+                  if (updateResponse.success) {
+                    // Force refresh preferences in memory
+                    await _preferenceController.forceRefresh();
+                    
+                    // Add a small delay to ensure API update is processed
+                    await Future.delayed(const Duration(milliseconds: 500));
+                    
+                    // Reset dashboard state and navigate to main screen
+                    final dashboardController = Get.find<DashboardController>();
+                    await dashboardController.resetSearchState();
+                    Get.offAll(() => const MainScreen());
+                  } else {
+                    CustomSnackBar.showError(message: 'Failed to update preference');
+                  }
+                } else {
+                  // No existing preference found, create new one
+                  final preferenceData = [
+                    {
+                      'bankName': _controller.selectedBank.value,
+                      'cardName': _selectedCardName.value,
+                      'priority': 10,
+                      'isActive': true,
+                    }
+                  ];
+                  
+                  final addResponse = await _preferenceController.addPreferences(preferenceData);
+                  
+                  if (addResponse.success) {
+                    // Force refresh preferences in memory
+                    await _preferenceController.forceRefresh();
+                    
+                    // Add a small delay to ensure API update is processed
+                    await Future.delayed(const Duration(milliseconds: 500));
+                    
+                    // Reset dashboard state and navigate to main screen
+                    final dashboardController = Get.find<DashboardController>();
+                    await dashboardController.resetSearchState();
+                    Get.offAll(() => const MainScreen());
+                  } else {
+                    CustomSnackBar.showError(message: 'Failed to save preference');
+                  }
+                }
               } else {
                 // Show setting up account loader before navigating (for signup flow)
                 Get.dialog(
@@ -620,11 +695,6 @@ class _CardPreferenceScreenState extends State<CardPreferenceScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () {
                                   _selectedCardName.value = card;
-                                  // Save the user's preferred card
-                                  UserPreferencesService.savePreferredCard(
-                                    card,
-                                    _controller.selectedBank.value,
-                                  );
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.all(16),

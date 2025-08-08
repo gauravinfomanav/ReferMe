@@ -39,7 +39,7 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     dashboardController.isSearching 
-                        ? 'Searching for users with ${dashboardController.preferredCard}...'
+                        ? 'Searching for user...'
                         : 'Loading your network...',
                     style: TextStyle(
                       color: Color(AppConstants.primaryColorHex).withOpacity(0.7),
@@ -171,7 +171,7 @@ class DashboardScreen extends StatelessWidget {
                           color: Colors.white.withOpacity(0.2),
                         ),
                         _buildStatItem(
-                          'Other Users',
+                          'ReferMe Users',
                           dashboardController.usersWithOtherCards.length.toString(),
                         ),
                         Container(
